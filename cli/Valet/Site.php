@@ -677,11 +677,11 @@ class Site
         $versionInteger = preg_replace('~[^\d]~', '', $version);
 
         $this->files->putAsUser(
-            $this->nginxPath($url), $this->buildSecureNginxServer($url, str_replace(
-                    ['VALET_HOME_PATH', 'VALET_SERVER_PATH', 'VALET_STATIC_PREFIX', 'VALET_SITE', 'VALET_PHP_FPM_SOCKET'],
-                    [VALET_HOME_PATH, VALET_SERVER_PATH, VALET_STATIC_PREFIX, $url, "valet{$versionInteger}.sock"],
-                    $this->files->get(__DIR__.'/../stubs/site.valet.conf')
-                )
+            $this->nginxPath($url),
+            str_replace(
+                ['VALET_HOME_PATH', 'VALET_SERVER_PATH', 'VALET_STATIC_PREFIX', 'VALET_SITE', 'VALET_PHP_FPM_SOCKET'],
+                [VALET_HOME_PATH, VALET_SERVER_PATH, VALET_STATIC_PREFIX, $url, "valet{$versionInteger}.sock"],
+                $this->files->get(__DIR__.'/../stubs/site.valet.conf')
             )
         );
     }
