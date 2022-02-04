@@ -37,7 +37,7 @@ class PhpFpm
      */
     public function install($version = null, $site = null)
     {
-        if (! $this->brew->hasInstalledPhp()) {
+        if (!$this->brew->hasInstalledPhp()) {
             $this->brew->ensureInstalled('php', [], $this->taps);
         }
 
@@ -45,7 +45,7 @@ class PhpFpm
 
         $this->updateConfiguration($version, $site);
 
-        $this->restart();
+        $this->restart($version);
     }
 
     /**
@@ -69,7 +69,7 @@ class PhpFpm
     {
         info('Updating PHP configuration...');
 
-        $fpmConfigFile = $this->fpmConfigPath();
+        $fpmConfigFile = $this->fpmConfigPath($version);
 
         $this->files->ensureDirExists(dirname($fpmConfigFile), user());
 
@@ -94,7 +94,7 @@ class PhpFpm
             $contents = preg_replace('/^;?listen\.mode = .+$/m', 'listen.mode = 0777', $contents);
         }
 
-        if ($site && $version){
+        if ($site && $version) {
             $versionInteger = preg_replace('~[^\d]~', '', $version);
             $contents = str_replace("valet.sock", "valet{$versionInteger}.sock", $contents);
         }
@@ -124,9 +124,13 @@ class PhpFpm
      *
      * @return void
      */
-    public function restart()
+    public function restart($version = null)
     {
-        $this->brew->restartLinkedPhp();
+        if ($version) {
+            $this->brew->restartService($version);
+        } else {
+            $this->brew->restartLinkedPhp();
+        }
     }
 
     /**
@@ -147,9 +151,11 @@ class PhpFpm
      *
      * @return string
      */
-    public function fpmConfigPath()
+    public function fpmConfigPath($version = null)
     {
-        $version = $this->brew->linkedPhp();
+        if(! $version){
+            $version = $this->brew->linkedPhp();
+        }
 
         $versionNormalized = $this->normalizePhpVersion($version === 'php' ? Brew::LATEST_PHP_VERSION : $version);
         $versionNormalized = preg_replace('~[^\d\.]~', '', $versionNormalized);
@@ -186,7 +192,7 @@ class PhpFpm
         $version = $this->validateRequestedVersion($version);
 
         try {
-            if ($this->brew->linkedPhp() === $version && ! $force) {
+            if ($this->brew->linkedPhp() === $version && !$force) {
                 output(sprintf('<info>Valet is already using version: <comment>%s</comment>.</info> To re-link and re-configure use the --force parameter.'.PHP_EOL,
                     $version));
                 exit();
@@ -194,29 +200,36 @@ class PhpFpm
         } catch (DomainException $e) { /* ignore thrown exception when no linked php is found */
         }
 
-        if (! $this->brew->installed($version)) {
+        if (!$this->brew->installed($version)) {
             // Install the relevant formula if not already installed
             $this->brew->ensureInstalled($version, [], $this->taps);
         }
 
-        // Unlink the current php if there is one
-        if ($this->brew->hasLinkedPhp()) {
-            $currentVersion = $this->brew->getLinkedPhpFormula();
-            info(sprintf('Unlinking current version: %s', $currentVersion));
-            $this->brew->unlink($currentVersion);
+        // we need to unlink and link only for global php version change
+        if ($site) {
+            $versionInteger = preg_replace('~[^\d]~', '', $version);
+            $this->cli->quietly('sudo rm '.VALET_HOME_PATH."/valet{$versionInteger}.sock");
+            $this->install($version, $site);
+        } else {
+            // Unlink the current php if there is one
+            if ($this->brew->hasLinkedPhp()) {
+                $currentVersion = $this->brew->getLinkedPhpFormula();
+                info(sprintf('Unlinking current version: %s', $currentVersion));
+                $this->brew->unlink($currentVersion);
+            }
+
+            info(sprintf('Linking new version: %s', $version));
+            $this->brew->link($version, true);
+
+            $this->stopRunning();
+
+            // remove any orphaned valet.sock files that PHP didn't clean up due to version conflicts
+            $this->files->unlink(VALET_HOME_PATH.'/valet.sock');
+            $this->cli->quietly('sudo rm '.VALET_HOME_PATH.'/valet*.sock');
+
+            // ensure configuration is correct and start the linked version
+            $this->install();
         }
-
-        info(sprintf('Linking new version: %s', $version));
-        $this->brew->link($version, true);
-
-        $this->stopRunning();
-
-        // remove any orphaned valet.sock files that PHP didn't clean up due to version conflicts
-        $this->files->unlink(VALET_HOME_PATH.'/valet.sock');
-        $this->cli->quietly('sudo rm '.VALET_HOME_PATH.'/valet*.sock');
-
-        // ensure configuration is correct and start the linked version
-        $this->install($version, $site);
 
         return $version === 'php' ? $this->brew->determineAliasedVersion($version) : $version;
     }
@@ -239,7 +252,7 @@ class PhpFpm
     {
         $version = $this->normalizePhpVersion($version);
 
-        if (! $this->brew->supportedPhpVersions()->contains($version)) {
+        if (!$this->brew->supportedPhpVersions()->contains($version)) {
             throw new DomainException(
                 sprintf(
                     'Valet doesn\'t support PHP version: %s (try something like \'php@7.3\' instead)',
