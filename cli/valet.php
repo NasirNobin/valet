@@ -493,7 +493,7 @@ You might also want to investigate your global Composer configs. Helpful command
     /**
      * Allow the user to change the version of php valet uses.
      */
-    $app->command('use [phpVersion] [--force]', function ($phpVersion, $force) {
+    $app->command('use [phpVersion] [--force] [--site=]', function ($phpVersion, $force, $site) {
         if (! $phpVersion) {
             $path = getcwd().'/.valetphprc';
             $linkedVersion = Brew::linkedPhp();
@@ -511,7 +511,15 @@ You might also want to investigate your global Composer configs. Helpful command
 
         PhpFpm::validateRequestedVersion($phpVersion);
 
-        $newVersion = PhpFpm::useVersion($phpVersion, $force);
+        // @TODO: validate site
+        // Site::validate($site);
+        // dump($site);
+
+        $newVersion = PhpFpm::useVersion($phpVersion, $force, $site);
+
+        if($site){
+            Site::buildNginxServer($site, $phpVersion);
+        }
 
         Nginx::restart();
         info(sprintf('Valet is now using %s.', $newVersion).PHP_EOL);

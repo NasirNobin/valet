@@ -665,6 +665,27 @@ class Site
         );
     }
 
+
+    /**
+     * Build the Nginx server for the given URL.
+     *
+     * @param  string  $url
+     * @param  string  $version
+     */
+    public function buildNginxServer($url, $version = null)
+    {
+        $versionInteger = preg_replace('~[^\d]~', '', $version);
+
+        $this->files->putAsUser(
+            $this->nginxPath($url), $this->buildSecureNginxServer($url, str_replace(
+                    ['VALET_HOME_PATH', 'VALET_SERVER_PATH', 'VALET_STATIC_PREFIX', 'SITE_URL', 'VALET_PHP_FPM_SOCKET'],
+                    [VALET_HOME_PATH, VALET_SERVER_PATH, VALET_STATIC_PREFIX, $url, "valet{$versionInteger}.sock"],
+                    $this->files->get(__DIR__.'/../stubs/site.valet.conf')
+                )
+            )
+        );
+    }
+
     /**
      * Unsecure the given URL so that it will use HTTP again.
      *

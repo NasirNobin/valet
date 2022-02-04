@@ -35,7 +35,7 @@ class PhpFpm
      *
      * @return void
      */
-    public function install()
+    public function install($version = null, $site = null)
     {
         if (! $this->brew->hasInstalledPhp()) {
             $this->brew->ensureInstalled('php', [], $this->taps);
@@ -43,7 +43,7 @@ class PhpFpm
 
         $this->files->ensureDirExists(VALET_HOME_PATH.'/Log', user());
 
-        $this->updateConfiguration();
+        $this->updateConfiguration($version, $site);
 
         $this->restart();
     }
@@ -65,7 +65,7 @@ class PhpFpm
      *
      * @return void
      */
-    public function updateConfiguration()
+    public function updateConfiguration($version = null, $site = null)
     {
         info('Updating PHP configuration...');
 
@@ -93,6 +93,12 @@ class PhpFpm
             $contents = preg_replace('/^;?listen\.group = .+$/m', 'listen.group = staff', $contents);
             $contents = preg_replace('/^;?listen\.mode = .+$/m', 'listen.mode = 0777', $contents);
         }
+
+        if ($site && $version){
+            $versionInteger = preg_replace('~[^\d]~', '', $version);
+            $contents = str_replace("valet.sock", "valet{$versionInteger}.sock", $contents);
+        }
+
         $this->files->put($fpmConfigFile, $contents);
 
         $contents = $this->files->get(__DIR__.'/../stubs/php-memory-limits.ini');
@@ -171,10 +177,11 @@ class PhpFpm
      * Use a specific version of php.
      *
      * @param $version
-     * @param $force
+     * @param  bool  $force
+     * @param  null  $site
      * @return string
      */
-    public function useVersion($version, $force = false)
+    public function useVersion($version, $force = false, $site = null)
     {
         $version = $this->validateRequestedVersion($version);
 
@@ -206,10 +213,10 @@ class PhpFpm
 
         // remove any orphaned valet.sock files that PHP didn't clean up due to version conflicts
         $this->files->unlink(VALET_HOME_PATH.'/valet.sock');
-        $this->cli->quietly('sudo rm '.VALET_HOME_PATH.'/valet.sock');
+        $this->cli->quietly('sudo rm '.VALET_HOME_PATH.'/valet*.sock');
 
         // ensure configuration is correct and start the linked version
-        $this->install();
+        $this->install($version, $site);
 
         return $version === 'php' ? $this->brew->determineAliasedVersion($version) : $version;
     }
