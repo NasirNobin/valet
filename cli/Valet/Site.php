@@ -485,6 +485,8 @@ class Site
      */
     public function secure($url, $siteConf = null, $certificateExpireInDays = 396, $caExpireInYears = 20)
     {
+        $phpVersion = $this->extractPhpVersion($url); // let's try to preserve the isolated php version here
+
         $this->unsecure($url);
 
         $this->files->ensureDirExists($this->caPath(), user());
@@ -498,9 +500,15 @@ class Site
         $this->createCa($caExpireInDate->format('%a'));
         $this->createCertificate($url, $certificateExpireInDays);
 
-        $this->files->putAsUser(
-            $this->nginxPath($url), $this->buildSecureNginxServer($url, $siteConf)
-        );
+        $siteConf = $this->buildSecureNginxServer($url, $siteConf);
+
+        // if user had any isolated php version, let's swap the .sock file,
+        // so it still uses the old php version
+        if ($phpVersion) {
+            $this->replaceSockFile($siteConf, "valet{$phpVersion}.sock", $phpVersion);
+        }
+
+        $this->files->putAsUser($this->nginxPath($url), $siteConf);
     }
 
     /**
@@ -974,5 +982,42 @@ class Site
         $extension = $extension ? '.'.$extension : '';
 
         return $this->valetHomePath().'/Certificates'.$url.$extension;
+    }
+
+    /**
+     * Extract PHP version of exising nginx conifg
+     *
+     * @param $url
+     * @return string|void
+     */
+    public function extractPhpVersion($url)
+    {
+        if ($this->files->exists($this->nginxPath($url))) {
+            $siteConf = $this->files->get($this->nginxPath($url));
+
+            if (starts_with($siteConf, '# Valet isolated PHP version')) {
+                $firstLine = explode(PHP_EOL, $siteConf)[0];
+                return preg_replace("/[^\d]*/", "", $firstLine);
+            }
+        }
+    }
+
+    /**
+     * Replace .sock file form a ngin site conf
+     *
+     * @param $siteConf
+     * @param $sockFile
+     * @param $phpVersion
+     * @return string
+     */
+    public function replaceSockFile($siteConf, $sockFile, $phpVersion)
+    {
+        $siteConf = preg_replace("/valet[0-9]*.sock/", $sockFile, $siteConf);
+
+        if (! starts_with($siteConf, '# Valet isolated PHP version')) {
+            $siteConf = '# Valet isolated PHP version : '.$phpVersion.PHP_EOL.$siteConf;
+        }
+
+        return $siteConf;
     }
 }

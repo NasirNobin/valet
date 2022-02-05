@@ -141,10 +141,7 @@ class Nginx
     {
         if ($this->files->exists($this->site->nginxPath($valetSite))) {
             $siteConf = $this->files->get($this->site->nginxPath($valetSite));
-            $siteConf = preg_replace("/valet[0-9]*.sock/", $fpmSockName, $siteConf);
-            if (! starts_with($siteConf, '# Valet isolated PHP version')) {
-                $siteConf = '# Valet isolated PHP version : '.$phpVersion.PHP_EOL.$siteConf;
-            }
+            $siteConf = $this->site->replaceSockFile($siteConf, $fpmSockName, $phpVersion);
         }else{
             $siteConf = str_replace(
                 ['VALET_HOME_PATH', 'VALET_SERVER_PATH', 'VALET_STATIC_PREFIX', 'VALET_SITE', 'VALET_PHP_FPM_SOCKET', 'VALET_ISOLATED_PHP_VERSION'],
