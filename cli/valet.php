@@ -511,8 +511,12 @@ You might also want to investigate your global Composer configs. Helpful command
 
         PhpFpm::validateRequestedVersion($phpVersion);
 
-        if ($site){
-            if(! Site::isValidSite($site)) {
+        if ($site) {
+            if ($site == '.') { // allow user to use dot as current dir's site `--site=.`
+                $site = Site::host(getcwd()).'.'.Configuration::read()['tld'];
+            }
+
+            if (! Site::isValidSite($site)) {
                 return warning(sprintf('Site %s could not be found in valet site list.', $site));
             }
 
