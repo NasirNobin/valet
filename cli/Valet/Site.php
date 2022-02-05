@@ -485,7 +485,7 @@ class Site
      */
     public function secure($url, $siteConf = null, $certificateExpireInDays = 396, $caExpireInYears = 20)
     {
-        $phpVersion = $this->extractPhpVersion($url); // let's try to preserve the isolated php version here
+        $phpVersion = $this->extractPhpVersion($url); // let's try to preserve the isolated php version here. Example output: 74
 
         $this->unsecure($url);
 
@@ -505,7 +505,7 @@ class Site
         // if user had any isolated php version, let's swap the .sock file,
         // so it still uses the old php version
         if ($phpVersion) {
-            $this->replaceSockFile($siteConf, "valet{$phpVersion}.sock", $phpVersion);
+            $siteConf = $this->replaceSockFile($siteConf, "valet{$phpVersion}.sock", $phpVersion);
         }
 
         $this->files->putAsUser($this->nginxPath($url), $siteConf);
