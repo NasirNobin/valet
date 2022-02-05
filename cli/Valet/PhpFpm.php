@@ -98,7 +98,7 @@ class PhpFpm
         }
 
         if ($phpVersion) {
-            $contents = str_replace("valet.sock", $this->fpmSocketName($phpVersion), $contents);
+            $contents = str_replace("valet.sock", $this->fpmSockName($phpVersion), $contents);
         }
 
         $this->files->put($fpmConfigFile, $contents);
@@ -138,7 +138,7 @@ class PhpFpm
             // restart all those PHP FPM though valet
             // to make sure all the custom php versioned sites keep running
             $fpmSockFiles = $this->brew->supportedPhpVersions()->map(function($version) {
-                return $this->fpmSocketName($this->normalizePhpVersion($version));
+                return $this->fpmSockName($this->normalizePhpVersion($version));
             })->unique();
 
             $phpVersions = collect($this->files->scandir(VALET_HOME_PATH . '/Nginx'))
@@ -235,7 +235,7 @@ class PhpFpm
 
         // we need to unlink and link only for global php version change
         if ($site) {
-            $this->cli->quietly('sudo rm '.VALET_HOME_PATH."/". $this->fpmSocketName($version));
+            $this->cli->quietly('sudo rm '.VALET_HOME_PATH."/". $this->fpmSockName($version));
             $this->install($version, $site);
         } else {
             // Unlink the current php if there is one
@@ -315,7 +315,13 @@ class PhpFpm
         return $version;
     }
 
-    function fpmSocketName($phpVersion = null)
+    /**
+     * Get fpm sock file name from a given php version
+     *
+     * @param  string|null  $phpVersion
+     * @return string
+     */
+    function fpmSockName($phpVersion = null)
     {
         $versionInteger = preg_replace('~[^\d]~', '', $phpVersion);
 
@@ -323,8 +329,9 @@ class PhpFpm
     }
 
     /**
-     * Check all custom nginx config files
-     * Look for the php version and maybe adjust that custom config
+     * Preseve exising isolated PHP versioned sites, when running a gloabl php version update
+     *
+     * Look for the php version and will adjust that custom nginx config
      *
      * @param $newPhpVersion
      * @param $oldPhpVersion
@@ -338,12 +345,12 @@ class PhpFpm
             ->each(function ($file) use ($newPhpVersion, $oldPhpVersion) {
                 $content = $this->files->get(VALET_HOME_PATH.'/Nginx/'.$file);
 
-                if (strpos($content, $this->fpmSocketName($newPhpVersion)) !== false) {
+                if (strpos($content, $this->fpmSockName($newPhpVersion)) !== false) {
                     info(sprintf('Updating site %s to keep using version: %s', $file, $newPhpVersion));
-                    $this->files->put(VALET_HOME_PATH.'/Nginx/'.$file, str_replace($this->fpmSocketName($newPhpVersion), 'valet.sock', $content));
+                    $this->files->put(VALET_HOME_PATH.'/Nginx/'.$file, str_replace($this->fpmSockName($newPhpVersion), 'valet.sock', $content));
                 } elseif (strpos($content, 'valet.sock') !== false) {
                     info(sprintf('Updating site %s to keep using version: %s', $file, $oldPhpVersion));
-                    $this->files->put(VALET_HOME_PATH.'/Nginx/'.$file, str_replace('valet.sock', $this->fpmSocketName($oldPhpVersion), $content));
+                    $this->files->put(VALET_HOME_PATH.'/Nginx/'.$file, str_replace('valet.sock', $this->fpmSockName($oldPhpVersion), $content));
                 }
             });
     }

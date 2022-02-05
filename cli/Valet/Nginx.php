@@ -129,26 +129,28 @@ class Nginx
 
 
     /**
-     * Build the Nginx server for the given URL.
+     * Build the Nginx server for the given valet site.
      *
      * @param  string  $valetSite
-     * @param  string  $phpVersion
+     * @param  string  $fpmSockName
+     * @param $phpVersion
+     *
+     * @return void
      */
-    public function installNginxConfig($valetSite, $phpVersion = null)
+    public function installSiteConfig($valetSite, $fpmSockName, $phpVersion)
     {
-        // TODO: Need to check if site has SSL
-        // if so maybe need to update the secured file insted
-
-        $versionInteger = preg_replace('~[^\d]~', '', $phpVersion);
-
-        $this->files->putAsUser(
-            $this->site->nginxPath($valetSite),
-            str_replace(
-                ['VALET_HOME_PATH', 'VALET_SERVER_PATH', 'VALET_STATIC_PREFIX', 'VALET_SITE', 'VALET_PHP_FPM_SOCKET'],
-                [VALET_HOME_PATH, VALET_SERVER_PATH, VALET_STATIC_PREFIX, $valetSite, "valet{$versionInteger}.sock"],
+        if ($this->files->exists($this->site->nginxPath($valetSite))) {
+            $siteConf = $this->files->get($this->site->nginxPath($valetSite));
+            $siteConf = preg_replace("/valet[0-9]*.sock/", $fpmSockName, $siteConf);
+        }else{
+            $siteConf = str_replace(
+                ['VALET_HOME_PATH', 'VALET_SERVER_PATH', 'VALET_STATIC_PREFIX', 'VALET_SITE', 'VALET_PHP_FPM_SOCKET', 'VALET_ISOLATED_PHP_VERSION'],
+                [VALET_HOME_PATH, VALET_SERVER_PATH, VALET_STATIC_PREFIX, $valetSite, $fpmSockName, $phpVersion],
                 $this->replaceLoopback($this->files->get(__DIR__.'/../stubs/site.valet.conf'))
-            )
-        );
+            );
+        }
+
+        $this->files->putAsUser($this->site->nginxPath($valetSite), $siteConf);
     }
 
     /**
