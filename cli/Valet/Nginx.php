@@ -127,6 +127,27 @@ class Nginx
         $this->rewriteSecureNginxFiles();
     }
 
+
+    /**
+     * Build the Nginx server for the given URL.
+     *
+     * @param  string  $valetSite
+     * @param  string  $phpVersion
+     */
+    public function installNginxConfig($valetSite, $phpVersion = null)
+    {
+        $versionInteger = preg_replace('~[^\d]~', '', $phpVersion);
+
+        $this->files->putAsUser(
+            $this->site->nginxPath($valetSite),
+            str_replace(
+                ['VALET_HOME_PATH', 'VALET_SERVER_PATH', 'VALET_STATIC_PREFIX', 'VALET_SITE', 'VALET_PHP_FPM_SOCKET'],
+                [VALET_HOME_PATH, VALET_SERVER_PATH, VALET_STATIC_PREFIX, $valetSite, "valet{$versionInteger}.sock"],
+                $this->replaceLoopback($this->files->get(__DIR__.'/../stubs/site.valet.conf'))
+            )
+        );
+    }
+
     /**
      * Check nginx.conf for errors.
      */
