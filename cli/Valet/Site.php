@@ -191,6 +191,17 @@ class Site
     }
 
     /**
+     * Determine if the provided site is parked
+     *
+     * @param $valetSite
+     * @return bool
+     */
+    function isValidSite($valetSite)
+    {
+        return $this->parked()->whereIn('url', ['http://' . $valetSite , 'https://' . $valetSite])->count() > 0;
+    }
+
+    /**
      * Identify whether a site is for a proxy by reading the host name from its config file.
      *
      * @param  string  $site  Site name without TLD
