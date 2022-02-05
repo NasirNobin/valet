@@ -70,7 +70,7 @@ class PhpFpm
      */
     public function updateConfiguration($phpVersion = null)
     {
-        info('Updating PHP configuration...');
+        info(sprintf('Updating PHP configuration%s...', $phpVersion ? ' for ' . $phpVersion : ''));
 
         $fpmConfigFile = $this->fpmConfigPath($phpVersion);
 
@@ -142,6 +142,9 @@ class PhpFpm
             })->unique();
 
             $phpVersions = collect($this->files->scandir(VALET_HOME_PATH . '/Nginx'))
+                ->filter(function ($file) {
+                    return !starts_with($file, '.');
+                })
                 ->map(function ($file) use ($fpmSockFiles){
                     $content  = $this->files->get(VALET_HOME_PATH . '/Nginx/' . $file);
                     foreach ($fpmSockFiles as $sock){
@@ -245,23 +248,7 @@ class PhpFpm
 
                 // check all custom nginx config files
                 // look for the php version and maybe delete that custom config
-                collect($this->files->scandir(VALET_HOME_PATH . '/Nginx'))
-                    ->each(function ($file) use ($version, $linkedPhp){
-                        $content = $this->files->get(VALET_HOME_PATH . '/Nginx/' . $file);
-
-                        // $fpmLinkedSock = $this->fpmSocketName($version);
-                        //
-                        // // swap
-                        // if (strpos($content, $fpmLinkedSock) !== false) {
-                        //     $this->files->put(VALET_HOME_PATH . '/Nginx/' . $file, str_replace($fpmLinkedSock, 'valet.sock', $content));
-                        //     return false;
-                        // }
-                        //
-                        // if (strpos($content, 'valet.sock') !== false){
-                        //     $this->files->put(VALET_HOME_PATH . '/Nginx/' . $file, str_replace('valet.sock', $this->fpmSocketName($version), $content));
-                        //     return false;
-                        // }
-                    });
+                $this->swapConfigForGlobalPhpUpdate($version, $linkedPhp);
 
                 $currentVersion = $this->brew->getLinkedPhpFormula();
                 info(sprintf('Unlinking current version: %s', $currentVersion));
@@ -333,5 +320,31 @@ class PhpFpm
         $versionInteger = preg_replace('~[^\d]~', '', $phpVersion);
 
         return "valet{$versionInteger}.sock";
+    }
+
+    /**
+     * check all custom nginx config files
+     * look for the php version and maybe delete that custom config
+     *
+     * @param $newPhpVersion
+     * @param $oldPhpVersion
+     */
+    private function swapConfigForGlobalPhpUpdate($newPhpVersion, $oldPhpVersion)
+    {
+        collect($this->files->scandir(VALET_HOME_PATH.'/Nginx'))
+            ->filter(function ($file) {
+                return !starts_with($file, '.');
+            })
+            ->each(function ($file) use ($newPhpVersion, $oldPhpVersion) {
+                $content = $this->files->get(VALET_HOME_PATH.'/Nginx/'.$file);
+
+                if (strpos($content, $this->fpmSocketName($newPhpVersion)) !== false) {
+                    info(sprintf('Updating site %s to keep using version: %s', $file, $oldPhpVersion));
+                    $this->files->put(VALET_HOME_PATH.'/Nginx/'.$file, str_replace($this->fpmSocketName($newPhpVersion), 'valet.sock', $content));
+                } elseif (strpos($content, 'valet.sock') !== false) {
+                    info(sprintf('Updating site %s to keep using version: %s', $file, $oldPhpVersion));
+                    $this->files->put(VALET_HOME_PATH.'/Nginx/'.$file, str_replace('valet.sock', $this->fpmSocketName($oldPhpVersion), $content));
+                }
+            });
     }
 }
