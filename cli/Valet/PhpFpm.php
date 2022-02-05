@@ -39,7 +39,7 @@ class PhpFpm
      */
     public function install($phpVersion = null, $valetSite = null)
     {
-        if (!$this->brew->hasInstalledPhp()) {
+        if (! $this->brew->hasInstalledPhp()) {
             $this->brew->ensureInstalled('php', [], $this->taps);
         }
 
@@ -128,37 +128,7 @@ class PhpFpm
      */
     public function restart($phpVersion = null)
     {
-        if ($phpVersion) {
-            // restart speicifc verion of PHP
-            $this->brew->restartService($phpVersion);
-        } else {
-
-            // scan through custom nginx files
-            // look for config file, that is using custom .sock files (example: php74.sock)
-            // restart all those PHP FPM though valet
-            // to make sure all the custom php versioned sites keep running
-            $fpmSockFiles = $this->brew->supportedPhpVersions()->map(function($version) {
-                return $this->fpmSockName($this->normalizePhpVersion($version));
-            })->unique();
-
-            $phpVersions = collect($this->files->scandir(VALET_HOME_PATH . '/Nginx'))
-                ->filter(function ($file) {
-                    return !starts_with($file, '.');
-                })
-                ->map(function ($file) use ($fpmSockFiles){
-                    $content  = $this->files->get(VALET_HOME_PATH . '/Nginx/' . $file);
-                    foreach ($fpmSockFiles as $sock){
-                        if(strpos($content, $sock) !== false){
-                            // find the PHP version number from .sock path
-                            // valet74.sock will outout php74
-                            $phpVersion = 'php' . str_replace(['valet', '.sock'], '', $sock);
-                            return $this->normalizePhpVersion($phpVersion); // example output php@7.4
-                        }
-                    }
-                })->merge([$this->brew->getLinkedPhpFormula()])->filter()->unique()->toArray();
-
-            $this->brew->restartService($phpVersions);
-        }
+        $this->brew->restartService($phpVersion ?: $this->getPhpVersionsToPerformRestart());
     }
 
     /**
@@ -345,6 +315,10 @@ class PhpFpm
             ->each(function ($file) use ($newPhpVersion, $oldPhpVersion) {
                 $content = $this->files->get(VALET_HOME_PATH.'/Nginx/'.$file);
 
+                if (! starts_with($content, '# Valet isolated PHP version')) {
+                    return;
+                }
+
                 if (strpos($content, $this->fpmSockName($newPhpVersion)) !== false) {
                     info(sprintf('Updating site %s to keep using version: %s', $file, $newPhpVersion));
                     $this->files->put(VALET_HOME_PATH.'/Nginx/'.$file, str_replace($this->fpmSockName($newPhpVersion), 'valet.sock', $content));
@@ -353,5 +327,39 @@ class PhpFpm
                     $this->files->put(VALET_HOME_PATH.'/Nginx/'.$file, str_replace('valet.sock', $this->fpmSockName($oldPhpVersion), $content));
                 }
             });
+    }
+
+    /**
+     * Get the PHP versions to perform restart
+     *
+     * @return array
+     */
+    public function getPhpVersionsToPerformRestart()
+    {
+        // scan through custom nginx files
+        // look for config file, that is using custom .sock files (example: php74.sock)
+        // restart all those PHP FPM though valet
+        // to make sure all the custom php versioned sites keep running
+
+        $fpmSockFiles = $this->brew->supportedPhpVersions()->map(function ($version) {
+            return $this->fpmSockName($this->normalizePhpVersion($version));
+        })->unique();
+
+        return collect($this->files->scandir(VALET_HOME_PATH.'/Nginx'))
+            ->filter(function ($file) {
+                return !starts_with($file, '.');
+            })
+            ->map(function ($file) use ($fpmSockFiles) {
+                $content = $this->files->get(VALET_HOME_PATH.'/Nginx/'.$file);
+
+                foreach ($fpmSockFiles as $sock) {
+                    if (strpos($content, $sock) !== false) {
+                        // find the PHP version number from .sock path
+                        // valet74.sock will outout php74
+                        $phpVersion = 'php'.str_replace(['valet', '.sock'], '', $sock);
+                        return $this->normalizePhpVersion($phpVersion); // example output php@7.4
+                    }
+                }
+            })->merge([$this->brew->getLinkedPhpFormula()])->filter()->unique()->toArray();
     }
 }
