@@ -33,9 +33,11 @@ class PhpFpm
     /**
      * Install and configure PhpFpm.
      *
+     * @param  null  $phpVersion
+     * @param  null  $valetSite
      * @return void
      */
-    public function install($version = null, $site = null)
+    public function install($phpVersion = null, $valetSite = null)
     {
         if (!$this->brew->hasInstalledPhp()) {
             $this->brew->ensureInstalled('php', [], $this->taps);
@@ -43,9 +45,9 @@ class PhpFpm
 
         $this->files->ensureDirExists(VALET_HOME_PATH.'/Log', user());
 
-        $this->updateConfiguration($version, $site);
+        $this->updateConfiguration($phpVersion, $valetSite);
 
-        $this->restart($version);
+        $this->restart($phpVersion);
     }
 
     /**
@@ -63,13 +65,15 @@ class PhpFpm
     /**
      * Update the PHP FPM configuration.
      *
+     * @param  null  $phpVersion
+     * @param  null  $valetSite
      * @return void
      */
-    public function updateConfiguration($version = null, $site = null)
+    public function updateConfiguration($phpVersion = null, $valetSite = null)
     {
         info('Updating PHP configuration...');
 
-        $fpmConfigFile = $this->fpmConfigPath($version);
+        $fpmConfigFile = $this->fpmConfigPath($phpVersion);
 
         $this->files->ensureDirExists(dirname($fpmConfigFile), user());
 
@@ -94,9 +98,8 @@ class PhpFpm
             $contents = preg_replace('/^;?listen\.mode = .+$/m', 'listen.mode = 0777', $contents);
         }
 
-        if ($site && $version) {
-            $versionInteger = preg_replace('~[^\d]~', '', $version);
-            $contents = str_replace("valet.sock", "valet{$versionInteger}.sock", $contents);
+        if ($valetSite && $phpVersion) {
+            $contents = str_replace("valet.sock", $this->fpmSocketName($phpVersion), $contents);
         }
 
         $this->files->put($fpmConfigFile, $contents);
@@ -124,10 +127,10 @@ class PhpFpm
      *
      * @return void
      */
-    public function restart($version = null)
+    public function restart($phpVersion = null)
     {
-        if ($version) {
-            $this->brew->restartService($version);
+        if ($phpVersion) {
+            $this->brew->restartService($phpVersion);
         } else {
             $this->brew->restartLinkedPhp();
         }
@@ -151,13 +154,13 @@ class PhpFpm
      *
      * @return string
      */
-    public function fpmConfigPath($version = null)
+    public function fpmConfigPath($phpVersion = null)
     {
-        if(! $version){
-            $version = $this->brew->linkedPhp();
+        if(! $phpVersion){
+            $phpVersion = $this->brew->linkedPhp();
         }
 
-        $versionNormalized = $this->normalizePhpVersion($version === 'php' ? Brew::LATEST_PHP_VERSION : $version);
+        $versionNormalized = $this->normalizePhpVersion($phpVersion === 'php' ? Brew::LATEST_PHP_VERSION : $phpVersion);
         $versionNormalized = preg_replace('~[^\d\.]~', '', $versionNormalized);
 
         return $versionNormalized === '5.6'
@@ -207,8 +210,7 @@ class PhpFpm
 
         // we need to unlink and link only for global php version change
         if ($site) {
-            $versionInteger = preg_replace('~[^\d]~', '', $version);
-            $this->cli->quietly('sudo rm '.VALET_HOME_PATH."/valet{$versionInteger}.sock");
+            $this->cli->quietly('sudo rm '.VALET_HOME_PATH."/". $this->fpmSocketName($version));
             $this->install($version, $site);
         } else {
             // Unlink the current php if there is one
@@ -276,5 +278,12 @@ class PhpFpm
         }
 
         return $version;
+    }
+
+    function fpmSocketName($phpVersion = null)
+    {
+        $versionInteger = preg_replace('~[^\d]~', '', $phpVersion);
+
+        return "valet{$versionInteger}.sock";
     }
 }
