@@ -323,8 +323,8 @@ class PhpFpm
     }
 
     /**
-     * check all custom nginx config files
-     * look for the php version and maybe delete that custom config
+     * Check all custom nginx config files
+     * Look for the php version and maybe adjust that custom config
      *
      * @param $newPhpVersion
      * @param $oldPhpVersion
@@ -339,7 +339,7 @@ class PhpFpm
                 $content = $this->files->get(VALET_HOME_PATH.'/Nginx/'.$file);
 
                 if (strpos($content, $this->fpmSocketName($newPhpVersion)) !== false) {
-                    info(sprintf('Updating site %s to keep using version: %s', $file, $oldPhpVersion));
+                    info(sprintf('Updating site %s to keep using version: %s', $file, $newPhpVersion));
                     $this->files->put(VALET_HOME_PATH.'/Nginx/'.$file, str_replace($this->fpmSocketName($newPhpVersion), 'valet.sock', $content));
                 } elseif (strpos($content, 'valet.sock') !== false) {
                     info(sprintf('Updating site %s to keep using version: %s', $file, $oldPhpVersion));
