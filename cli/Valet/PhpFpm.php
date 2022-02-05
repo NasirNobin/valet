@@ -130,9 +130,32 @@ class PhpFpm
     public function restart($phpVersion = null)
     {
         if ($phpVersion) {
+            // restart speicifc verion of PHP
             $this->brew->restartService($phpVersion);
         } else {
-            $this->brew->restartLinkedPhp();
+
+            // scan through custom nginx files
+            // look for config file, that is using custom .sock files (example: php74.sock)
+            // restart all those PHP FPM though valet
+            // to make sure all the custom php versioned sites keep running
+            $fpmSockFiles = $this->brew->supportedPhpVersions()->map(function($version) {
+                return $this->fpmSocketName($this->normalizePhpVersion($version));
+            })->unique();
+
+            $phpVersions = collect($this->files->scandir(VALET_HOME_PATH . '/Nginx'))
+                ->map(function ($file) use ($fpmSockFiles){
+                    $content  = $this->files->get(VALET_HOME_PATH . '/Nginx/' . $file);
+                    foreach ($fpmSockFiles as $sock){
+                        if(strpos($content, $sock) !== false){
+                            // find the PHP version number from .sock path
+                            // valet74.sock will outout php74
+                            $phpVersion = 'php' . str_replace(['valet', '.sock'], '', $sock);
+                            return $this->normalizePhpVersion($phpVersion); // example output php@7.4
+                        }
+                    }
+                })->merge([$this->brew->getLinkedPhpFormula()])->filter()->unique()->toArray();
+
+            $this->brew->restartService($phpVersions);
         }
     }
 

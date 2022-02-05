@@ -518,7 +518,7 @@ You might also want to investigate your global Composer configs. Helpful command
         $newVersion = PhpFpm::useVersion($phpVersion, $force, $site);
 
         if($site){
-            Site::installNginxConfig($site, $phpVersion);
+            Nginx::installNginxConfig($site, $phpVersion);
         }
 
         Nginx::restart();
