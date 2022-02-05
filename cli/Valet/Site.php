@@ -198,7 +198,10 @@ class Site
      */
     function isValidSite($valetSite)
     {
-        return $this->parked()->whereIn('url', ['http://' . $valetSite , 'https://' . $valetSite])->count() > 0;
+        // remove .tld to make the search a bit easier
+        $siteName = str_replace('.'.$this->config->read()['tld'], '', $valetSite);
+
+        return $this->parked()->merge($this->links())->where('site', $siteName)->count() > 0;
     }
 
     /**
