@@ -511,8 +511,8 @@ You might also want to investigate your global Composer configs. Helpful command
 
         PhpFpm::validateRequestedVersion($phpVersion);
 
-        if($site){
-            if(! Site::isValidSite($site)){
+        if ($site){
+            if(! Site::isValidSite($site)) {
                 return warning(sprintf('Site %s could not be found in valet site list.', $site));
             }
 
@@ -522,7 +522,7 @@ You might also want to investigate your global Composer configs. Helpful command
             Nginx::restart();
 
             info(sprintf('Site %s is now using %s.', $site, $newVersion));
-        }else{
+        } else {
             $newVersion = PhpFpm::useVersion($phpVersion, $force);
             Nginx::restart();
             info(sprintf('Valet is now using %s.', $newVersion).PHP_EOL);

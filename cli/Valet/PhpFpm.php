@@ -45,7 +45,7 @@ class PhpFpm
 
         $this->files->ensureDirExists(VALET_HOME_PATH.'/Log', user());
 
-        $this->updateConfiguration($phpVersion, $valetSite);
+        $this->updateConfiguration($phpVersion);
 
         $this->restart($phpVersion);
     }
@@ -66,10 +66,9 @@ class PhpFpm
      * Update the PHP FPM configuration.
      *
      * @param  null  $phpVersion
-     * @param  null  $valetSite
      * @return void
      */
-    public function updateConfiguration($phpVersion = null, $valetSite = null)
+    public function updateConfiguration($phpVersion = null)
     {
         info('Updating PHP configuration...');
 
@@ -98,7 +97,7 @@ class PhpFpm
             $contents = preg_replace('/^;?listen\.mode = .+$/m', 'listen.mode = 0777', $contents);
         }
 
-        if ($valetSite && $phpVersion) {
+        if ($phpVersion) {
             $contents = str_replace("valet.sock", $this->fpmSocketName($phpVersion), $contents);
         }
 
@@ -238,6 +237,32 @@ class PhpFpm
         } else {
             // Unlink the current php if there is one
             if ($this->brew->hasLinkedPhp()) {
+                $linkedPhp = $this->brew->linkedPhp();
+
+                // updating old fpm to use a custom sock
+                // so exising lokced php versioned sites doesn't mess up
+                $this->updateConfiguration($linkedPhp);
+
+                // check all custom nginx config files
+                // look for the php version and maybe delete that custom config
+                collect($this->files->scandir(VALET_HOME_PATH . '/Nginx'))
+                    ->each(function ($file) use ($version, $linkedPhp){
+                        $content = $this->files->get(VALET_HOME_PATH . '/Nginx/' . $file);
+
+                        // $fpmLinkedSock = $this->fpmSocketName($version);
+                        //
+                        // // swap
+                        // if (strpos($content, $fpmLinkedSock) !== false) {
+                        //     $this->files->put(VALET_HOME_PATH . '/Nginx/' . $file, str_replace($fpmLinkedSock, 'valet.sock', $content));
+                        //     return false;
+                        // }
+                        //
+                        // if (strpos($content, 'valet.sock') !== false){
+                        //     $this->files->put(VALET_HOME_PATH . '/Nginx/' . $file, str_replace('valet.sock', $this->fpmSocketName($version), $content));
+                        //     return false;
+                        // }
+                    });
+
                 $currentVersion = $this->brew->getLinkedPhpFormula();
                 info(sprintf('Unlinking current version: %s', $currentVersion));
                 $this->brew->unlink($currentVersion);
