@@ -34,10 +34,9 @@ class PhpFpm
      * Install and configure PhpFpm.
      *
      * @param  null  $phpVersion
-     * @param  null  $valetSite
      * @return void
      */
-    public function install($phpVersion = null, $valetSite = null)
+    public function install($phpVersion = null)
     {
         if (! $this->brew->hasInstalledPhp()) {
             $this->brew->ensureInstalled('php', [], $this->taps);
@@ -206,7 +205,7 @@ class PhpFpm
         // we need to unlink and link only for global php version change
         if ($site) {
             $this->cli->quietly('sudo rm '.VALET_HOME_PATH."/". $this->fpmSockName($version));
-            $this->install($version, $site);
+            $this->install($version);
         } else {
             // Unlink the current php if there is one
             if ($this->brew->hasLinkedPhp()) {

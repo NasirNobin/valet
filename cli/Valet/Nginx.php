@@ -80,30 +80,13 @@ class Nginx
             str_replace(
                 ['VALET_HOME_PATH', 'VALET_SERVER_PATH', 'VALET_STATIC_PREFIX'],
                 [VALET_HOME_PATH, VALET_SERVER_PATH, VALET_STATIC_PREFIX],
-                $this->replaceLoopback($this->files->get(__DIR__.'/../stubs/valet.conf'))
+                $this->site->replaceLoopback($this->files->get(__DIR__.'/../stubs/valet.conf'))
             )
         );
 
         $this->files->putAsUser(
             BREW_PREFIX.'/etc/nginx/fastcgi_params',
             $this->files->get(__DIR__.'/../stubs/fastcgi_params')
-        );
-    }
-
-    public function replaceLoopback($siteConf)
-    {
-        $loopback = $this->configuration->read()['loopback'];
-
-        if ($loopback === VALET_LOOPBACK) {
-            return $siteConf;
-        }
-
-        $str = '#listen VALET_LOOPBACK:80; # valet loopback';
-
-        return str_replace(
-            $str,
-            substr(str_replace('VALET_LOOPBACK', $loopback, $str), 1),
-            $siteConf
         );
     }
 
@@ -125,32 +108,6 @@ class Nginx
         $this->files->putAsUser($nginxDirectory.'/.keep', "\n");
 
         $this->rewriteSecureNginxFiles();
-    }
-
-
-    /**
-     * Build the Nginx server for the given valet site.
-     *
-     * @param  string  $valetSite
-     * @param  string  $fpmSockName
-     * @param $phpVersion
-     *
-     * @return void
-     */
-    public function installSiteConfig($valetSite, $fpmSockName, $phpVersion)
-    {
-        if ($this->files->exists($this->site->nginxPath($valetSite))) {
-            $siteConf = $this->files->get($this->site->nginxPath($valetSite));
-            $siteConf = $this->site->replaceSockFile($siteConf, $fpmSockName, $phpVersion);
-        }else{
-            $siteConf = str_replace(
-                ['VALET_HOME_PATH', 'VALET_SERVER_PATH', 'VALET_STATIC_PREFIX', 'VALET_SITE', 'VALET_PHP_FPM_SOCKET', 'VALET_ISOLATED_PHP_VERSION'],
-                [VALET_HOME_PATH, VALET_SERVER_PATH, VALET_STATIC_PREFIX, $valetSite, $fpmSockName, $phpVersion],
-                $this->replaceLoopback($this->files->get(__DIR__.'/../stubs/site.valet.conf'))
-            );
-        }
-
-        $this->files->putAsUser($this->site->nginxPath($valetSite), $siteConf);
     }
 
     /**
