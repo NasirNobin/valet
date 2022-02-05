@@ -136,6 +136,9 @@ class Nginx
      */
     public function installNginxConfig($valetSite, $phpVersion = null)
     {
+        // TODO: Need to check if site has SSL
+        // if so maybe need to update the secured file insted
+
         $versionInteger = preg_replace('~[^\d]~', '', $phpVersion);
 
         $this->files->putAsUser(
