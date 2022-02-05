@@ -198,7 +198,7 @@ class PhpFpm
         } catch (DomainException $e) { /* ignore thrown exception when no linked php is found */
         }
 
-        if (!$this->brew->installed($version)) {
+        if (! $this->brew->installed($version)) {
             // Install the relevant formula if not already installed
             $this->brew->ensureInstalled($version, [], $this->taps);
         }
@@ -259,7 +259,7 @@ class PhpFpm
     {
         $version = $this->normalizePhpVersion($version);
 
-        if (!$this->brew->supportedPhpVersions()->contains($version)) {
+        if (! $this->brew->supportedPhpVersions()->contains($version)) {
             throw new DomainException(
                 sprintf(
                     'Valet doesn\'t support PHP version: %s (try something like \'php@7.3\' instead)',

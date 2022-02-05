@@ -1003,7 +1003,7 @@ class Site
     }
 
     /**
-     * Replace .sock file form a ngin site conf
+     * Replace .sock file form a nginx site conf
      *
      * @param $siteConf
      * @param $sockFile
