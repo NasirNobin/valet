@@ -531,6 +531,7 @@ You might also want to investigate your global Composer configs. Helpful command
 
     })->descriptions('Change the version of PHP used by valet', [
         'phpVersion' => 'The PHP version you want to use, e.g php@7.3',
+        '--site' => 'Isolate PHP version of a specific valet site. (Example: --site=site.test)',
     ]);
 
     /**
