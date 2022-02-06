@@ -532,7 +532,6 @@ You might also want to investigate your global Composer configs. Helpful command
             info(sprintf('Valet is now using %s.', $newVersion).PHP_EOL);
             info('Note that you might need to run <comment>composer global update</comment> if your PHP version change affects the dependencies of global packages required by Composer.');
         }
-
     })->descriptions('Change the version of PHP used by valet', [
         'phpVersion' => 'The PHP version you want to use, e.g php@7.3',
         '--site' => 'Isolate PHP version of a specific valet site. e.g: --site=site.test',
