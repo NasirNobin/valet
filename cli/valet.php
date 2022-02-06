@@ -525,7 +525,7 @@ You might also want to investigate your global Composer configs. Helpful command
             Site::installSiteConfig($site, PhpFpm::fpmSockName($phpVersion), $phpVersion);
             Nginx::restart();
 
-            info(sprintf('Site %s is now using %s.', $site, $newVersion));
+            info(sprintf('The [%s] site is now using %s.', $site, $newVersion));
         } else {
             $newVersion = PhpFpm::useVersion($phpVersion, $force);
             Nginx::restart();
@@ -535,7 +535,7 @@ You might also want to investigate your global Composer configs. Helpful command
 
     })->descriptions('Change the version of PHP used by valet', [
         'phpVersion' => 'The PHP version you want to use, e.g php@7.3',
-        '--site' => 'Isolate PHP version of a specific valet site. (Example: --site=site.test)',
+        '--site' => 'Isolate PHP version of a specific valet site. e.g: --site=site.test',
     ]);
 
     /**
