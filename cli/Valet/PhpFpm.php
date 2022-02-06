@@ -216,8 +216,8 @@ class PhpFpm
                 $this->updateConfiguration($linkedPhp);
 
                 // check all custom nginx config files
-                // look for the php version and maybe delete that custom config
-                $this->swapConfigForGlobalPhpUpdate($version, $linkedPhp);
+                // look for the php version and update config files accordingly
+                $this->updateConfigurationForGlobalUpdate($version, $linkedPhp);
 
                 $currentVersion = $this->brew->getLinkedPhpFormula();
                 info(sprintf('Unlinking current version: %s', $currentVersion));
@@ -303,7 +303,7 @@ class PhpFpm
      * @param $newPhpVersion
      * @param $oldPhpVersion
      */
-    private function swapConfigForGlobalPhpUpdate($newPhpVersion, $oldPhpVersion)
+    public function updateConfigurationForGlobalUpdate($newPhpVersion, $oldPhpVersion)
     {
         collect($this->files->scandir(VALET_HOME_PATH.'/Nginx'))
             ->filter(function ($file) {
