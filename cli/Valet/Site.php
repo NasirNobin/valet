@@ -712,6 +712,26 @@ class Site
     }
 
     /**
+     * Remove PHP Version isolation from a specific site
+     *
+     * @param  string  $valetSite
+     * @return void
+     */
+    function removeIsolation($valetSite)
+    {
+        // when site has SSL certificate, just re-generate the nginx config.
+        // it will be using the `valet.sock` by default from now
+        if ($this->files->exists($this->certificatesPath($valetSite, 'crt'))) {
+            $siteConf = $this->buildSecureNginxServer($valetSite);
+            $this->files->putAsUser($this->nginxPath($valetSite), $siteConf);
+        } else {
+            // when site doesn't have SSL
+            // removing the custom nginx config will remove isolation
+            $this->files->unlink($this->nginxPath($valetSite));
+        }
+    }
+
+    /**
      * Unsecure the given URL so that it will use HTTP again.
      *
      * @param  string  $url
