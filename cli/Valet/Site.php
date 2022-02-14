@@ -193,7 +193,7 @@ class Site
     /**
      * Determine if the provided site is a valid site, whether parked or linked.
      *
-     * @param string $valetSite
+     * @param  string  $valetSite
      * @return bool
      */
     public function isValidSite($valetSite)
@@ -489,7 +489,7 @@ class Site
     public function secure($url, $siteConf = null, $certificateExpireInDays = 396, $caExpireInYears = 20)
     {
         // Extract in order to later preserve custom PHP version config when securing
-        $phpVersion = $this->extractPhpVersion($url);
+        $phpVersion = $this->customPhpVersion($url);
 
         $this->unsecure($url);
 
@@ -506,7 +506,7 @@ class Site
 
         $siteConf = $this->buildSecureNginxServer($url, $siteConf);
 
-        // If they user had isolated the PHP version for this site, swap out .sock file
+        // If the user had isolated the PHP version for this site, swap out .sock file
         if ($phpVersion) {
             $siteConf = $this->replaceSockFile($siteConf, "valet{$phpVersion}.sock", $phpVersion);
         }
@@ -719,14 +719,13 @@ class Site
      */
     function removeIsolation($valetSite)
     {
-        // when site has SSL certificate, just re-generate the nginx config.
-        // it will be using the `valet.sock` by default from now
+        // When site has SSL certificate, just re-generate the nginx config.
+        // It will be using the `valet.sock` by default from now
         if ($this->files->exists($this->certificatesPath($valetSite, 'crt'))) {
             $siteConf = $this->buildSecureNginxServer($valetSite);
             $this->files->putAsUser($this->nginxPath($valetSite), $siteConf);
         } else {
-            // when site doesn't have SSL
-            // removing the custom nginx config will remove isolation
+            // When site doesn't have SSL, removing the custom nginx config will remove isolation
             $this->files->unlink($this->nginxPath($valetSite));
         }
     }
@@ -739,7 +738,8 @@ class Site
      */
     public function unsecure($url)
     {
-        $phpVersion = $this->extractPhpVersion($url); // let's try to preserve the isolated php version here. Example output: 74
+        // Extract in order to later preserve custom PHP version config when unsecuring. Example output: "74"
+        $phpVersion = $this->customPhpVersion($url);
 
         if ($this->files->exists($this->certificatesPath($url, 'crt'))) {
             $this->files->unlink($this->nginxPath($url));
@@ -757,8 +757,7 @@ class Site
             $url, '@laravel.valet'
         ));
 
-        // if user had any isolated php version, let's swap the .sock file,
-        // so it still uses the old php version
+        // If the user had isolated the PHP version for this site, swap out .sock file
         if ($phpVersion) {
             $this->installSiteConfig($url, "valet{$phpVersion}.sock", $phpVersion);
         }
@@ -1065,10 +1064,10 @@ class Site
     /**
      * Extract PHP version of exising nginx conifg.
      *
-     * @param $url
+     * @param   string  $url
      * @return string|void
      */
-    public function extractPhpVersion($url)
+    public function customPhpVersion($url)
     {
         if ($this->files->exists($this->nginxPath($url))) {
             $siteConf = $this->files->get($this->nginxPath($url));
@@ -1084,9 +1083,9 @@ class Site
     /**
      * Replace .sock file in an Nginx site configuration file contents.
      *
-     * @param string $siteConf
-     * @param string $sockFile
-     * @param string $phpVersion
+     * @param  string  $siteConf
+     * @param  string  $sockFile
+     * @param  string  $phpVersion
      * @return string
      */
     public function replaceSockFile($siteConf, $sockFile, $phpVersion)

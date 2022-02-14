@@ -512,14 +512,12 @@ You might also want to investigate your global Composer configs. Helpful command
         if ($site) {
             $tld = Configuration::read()['tld'];
 
-            // allow user to use dot as current dir's site `--site=.`
-            if ($site == '.') {
+            if ($site == '.') { // Allow user to use dot as current dir's site `--site=.`
                 $site = Site::host(getcwd()).'.'.$tld;
             }
 
-            // allow user to pass just the site's directory name
             if (false === strpos($site, '.'.$tld)) {
-                $site = $site.'.'.$tld;
+                $site = $site.'.'.$tld; // Allow user to pass just the site's directory name
             }
 
             if (! Site::isValidSite($site)) {
