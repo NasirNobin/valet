@@ -215,7 +215,7 @@ class PhpFpm
             $site = $this->site->getSiteUrl($site);
 
             if (! $site) {
-                warning(sprintf('Site %s could not be found in valet site list.', $site));
+                warning(sprintf('The [%s] site could not be found in valet site list.', $site));
                 exit();
             }
 
