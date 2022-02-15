@@ -212,17 +212,9 @@ class PhpFpm
     public function useVersion($version, $force = false, $site = null)
     {
         if ($site) {
-            $tld = $this->config->read()['tld'];
+            $site = $this->site->getSiteUrl($site);
 
-            if ($site == '.') { // Allow user to use dot as current dir's site `--site=.`
-                $site = $this->site->host(getcwd()).'.'.$tld;
-            }
-
-            if (false === strpos($site, '.'.$tld)) {
-                $site = $site.'.'.$tld; // Allow user to pass just the site's directory name
-            }
-
-            if (! $this->site->isValidSite($site)) {
+            if (! $site) {
                 warning(sprintf('Site %s could not be found in valet site list.', $site));
                 exit();
             }
