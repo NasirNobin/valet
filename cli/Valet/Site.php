@@ -701,7 +701,7 @@ class Site
      *
      * @param  string  $valetSite
      * @param  string  $fpmSockName
-     * @param $phpVersion
+     * @param  string  $phpVersion
      * @return void
      */
     public function installSiteConfig($valetSite, $fpmSockName, $phpVersion)
