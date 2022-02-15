@@ -3,12 +3,12 @@
 use Illuminate\Container\Container;
 use Valet\Brew;
 use Valet\CommandLine;
-use Valet\Filesystem;
 use Valet\Configuration;
-use Valet\Site;
+use Valet\Filesystem;
 use Valet\Nginx;
 use Valet\PhpFpm;
 use function Valet\resolve;
+use Valet\Site;
 use function Valet\swap;
 use function Valet\user;
 

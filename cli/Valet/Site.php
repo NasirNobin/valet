@@ -191,7 +191,7 @@ class Site
     }
 
     /**
-     * Determine if the provided site is a valid site, whether parked or linked and get the site url
+     * Determine if the provided site is a valid site, whether parked or linked and get the site url.
      *
      * @param  string  $directory
      * @return string|false
