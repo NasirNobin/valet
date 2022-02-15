@@ -199,7 +199,7 @@ class PhpFpm
         }
 
         if (strpos($phpVersion, 'php') === false) {
-            $phpVersion = 'php' . $phpVersion;
+            $phpVersion = 'php'.$phpVersion;
         }
 
         $phpVersion = $this->normalizePhpVersion($phpVersion);
