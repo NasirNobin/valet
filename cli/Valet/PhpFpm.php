@@ -189,11 +189,19 @@ class PhpFpm
     /**
      * Stop PHP, if a specific version isn't being used globally or by any sites.
      *
-     * @param  string  $phpVersion
+     * @param  string|null  $phpVersion
      * @return void
      */
     public function maybeStop($phpVersion)
     {
+        if (! $phpVersion) {
+            return;
+        }
+
+        if (strpos($phpVersion, 'php') === false) {
+            $phpVersion = 'php' . $phpVersion;
+        }
+
         $phpVersion = $this->normalizePhpVersion($phpVersion);
 
         if (! in_array($phpVersion, $this->utilizedPhpVersions())) {
@@ -206,28 +214,23 @@ class PhpFpm
      *
      * @param $version
      * @param  bool  $force
-     * @param  string|null  $site
+     * @param  string|null  $directory
      * @return string|void
      */
-    public function useVersion($version, $force = false, $site = null)
+    public function useVersion($version, $force = false, $directory = null)
     {
-        if ($site) {
-            $site = $this->site->getSiteUrl($site);
+        if ($directory) {
+            $site = $this->site->getSiteUrl($directory);
 
             if (! $site) {
-                warning(sprintf('The [%s] site could not be found in valet site list.', $site));
+                warning(sprintf('The [%s] site could not be found in valet site list.', $directory));
                 exit();
             }
 
             if ($version == 'default') { // Remove isolation for this site
                 $customPhpVersion = $this->site->customPhpVersion($site); // Example output: "74"
-
                 $this->site->removeIsolation($site);
-
-                if ($customPhpVersion) {
-                    $this->maybeStop('php'.$customPhpVersion);
-                }
-
+                $this->maybeStop($customPhpVersion);
                 $this->nginx->restart();
                 info(sprintf('The [%s] site is now using default php version.', $site));
                 exit();
@@ -251,10 +254,13 @@ class PhpFpm
         }
 
         // Delete old Valet sock files, install the new version, and, if this is a global change, unlink and link PHP
-        if ($site) {
+        if ($directory && $site) {
+            $customPhpVersion = $this->site->customPhpVersion($site); // Example output: "74"
             $this->cli->quietly('sudo rm '.VALET_HOME_PATH.'/'.$this->fpmSockName($version));
             $this->updateConfiguration($version);
             $this->site->installSiteConfig($site, $this->fpmSockName($version), $version);
+
+            $this->maybeStop($customPhpVersion);
             $this->restart($version);
             $this->nginx->restart();
             info(sprintf('The [%s] site is now using %s.', $site, $version));
