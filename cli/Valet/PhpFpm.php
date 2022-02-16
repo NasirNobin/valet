@@ -224,6 +224,7 @@ class PhpFpm
 
             if (! $site) {
                 warning(sprintf("The [%s] site could not be found in Valet's site list.", $directory));
+
                 return;
             }
 
@@ -233,6 +234,7 @@ class PhpFpm
                 $this->stopIfUnused($oldCustomPhpVersion);
                 $this->nginx->restart();
                 info(sprintf('The site [%s] is now using the default PHP version.', $site));
+
                 return;
             }
         }
@@ -263,6 +265,7 @@ class PhpFpm
             $this->restart($version);
             $this->nginx->restart();
             info(sprintf('The site [%s] is now using %s.', $site, $version));
+
             return;
         }
 
