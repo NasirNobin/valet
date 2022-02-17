@@ -155,6 +155,96 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         // Test both non prefixed and prefixed
         $this->assertSame('php@7.2', $phpFpmMock->useVersion('php@7.2'));
     }
+
+    function test_use_version_can_isolate_a_site()
+    {
+        $brewMock = Mockery::mock(Brew::class);
+        $nginxMock = Mockery::mock(Nginx::class);
+        $siteMock = Mockery::mock(Site::class);
+
+        $phpFpmMock = Mockery::mock(PhpFpm::class, [
+            $brewMock,
+            resolve(CommandLine::class),
+            resolve(Filesystem::class),
+            resolve(Configuration::class),
+            $siteMock,
+            $nginxMock,
+        ])->makePartial();
+
+        $brewMock->shouldReceive('supportedPhpVersions')->andReturn(collect([
+            'php@7.2',
+            'php@5.6',
+        ]));
+
+        $brewMock->shouldReceive('ensureInstalled')->with('php@7.2', [], $phpFpmMock->taps);
+        $brewMock->shouldReceive('installed')->with('php@7.2');
+        $brewMock->shouldReceive('determineAliasedVersion')->with('php@7.2')->andReturn('php@7.2');
+        $brewMock->shouldReceive('linkedPhp')->once();
+
+        $siteMock->shouldReceive('getSiteUrl')->with('test')->andReturn('test.test');
+        $siteMock->shouldReceive('installSiteConfig')->withArgs(['test.test', 'valet72.sock', 'php@7.2']);
+        $siteMock->shouldReceive('customPhpVersion')->with('test.test')->andReturn('72');
+
+        $phpFpmMock->shouldReceive('stopIfUnused')->with('72')->once();
+        $phpFpmMock->shouldReceive('updateConfiguration')->with('php@7.2')->once();
+        $phpFpmMock->shouldReceive('restart')->with('php@7.2')->once();
+
+        $nginxMock->shouldReceive('restart');
+
+        // These should only run when doing global PHP switches
+        $brewMock->shouldReceive('stopService')->never();
+        $brewMock->shouldReceive('link')->never();
+        $brewMock->shouldReceive('unlink')->never();
+        $phpFpmMock->shouldReceive('stopRunning')->never();
+        $phpFpmMock->shouldReceive('install')->never();
+
+        $this->assertSame(null, $phpFpmMock->useVersion('php@7.2', false, 'test'));
+    }
+
+
+    function test_use_version_can_remove_isolation()
+    {
+        $nginxMock = Mockery::mock(Nginx::class);
+        $siteMock = Mockery::mock(Site::class);
+
+        $phpFpmMock = Mockery::mock(PhpFpm::class, [
+            Mockery::mock(Brew::class),
+            resolve(CommandLine::class),
+            resolve(Filesystem::class),
+            resolve(Configuration::class),
+            $siteMock,
+            $nginxMock,
+        ])->makePartial();
+
+        $siteMock->shouldReceive('getSiteUrl')->with('test')->andReturn('test.test');
+        $siteMock->shouldReceive('customPhpVersion')->with('test.test')->andReturn('74');
+        $siteMock->shouldReceive('removeIsolation')->with('test.test')->once();
+        $phpFpmMock->shouldReceive('stopIfUnused')->with('74');
+        $nginxMock->shouldReceive('restart');
+
+        $this->assertSame(null, $phpFpmMock->useVersion('default', false, 'test'));
+    }
+
+    function test_use_version_will_throw_if_site_is_not_parked_or_linked()
+    {
+        $siteMock = Mockery::mock(Site::class);
+
+        $phpFpmMock = Mockery::mock(PhpFpm::class, [
+            Mockery::mock(Brew::class),
+            resolve(CommandLine::class),
+            resolve(Filesystem::class),
+            resolve(Configuration::class),
+            $siteMock,
+            Mockery::mock(Nginx::class),
+        ])->makePartial();
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage("The [test] site could not be found in Valet's site list.");
+
+        $siteMock->shouldReceive('getSiteUrl');
+
+        $this->assertSame(null, $phpFpmMock->useVersion('default', false, 'test'));
+    }
 }
 
 class StubForUpdatingFpmConfigFiles extends PhpFpm

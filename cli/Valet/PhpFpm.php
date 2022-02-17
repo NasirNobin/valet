@@ -223,9 +223,12 @@ class PhpFpm
             $site = $this->site->getSiteUrl($directory);
 
             if (! $site) {
-                warning(sprintf("The [%s] site could not be found in Valet's site list.", $directory));
-
-                return;
+                throw new DomainException(
+                    sprintf(
+                        "The [%s] site could not be found in Valet's site list.",
+                        $directory
+                    )
+                );
             }
 
             if ($version == 'default') { // Remove isolation for this site
