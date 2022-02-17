@@ -54,6 +54,64 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $this->assertStringContainsString("\nlisten = ".VALET_HOME_PATH.'/valet72.sock', $contents);
     }
 
+    public function test_it_can_swap_socks_for_global_update()
+    {
+        $fileSystemMock = Mockery::mock(Filesystem::class);
+
+        $phpFpmMock = Mockery::mock(PhpFpm::class, [
+            Mockery::mock(Brew::class),
+            Mockery::mock(CommandLine::class),
+            $fileSystemMock,
+            resolve(Configuration::class),
+            Mockery::mock(Site::class),
+            Mockery::mock(Nginx::class),
+        ])->makePartial();
+
+        swap(PhpFpm::class, $phpFpmMock);
+
+        $fileSystemMock->shouldReceive('scandir')
+            ->once()
+            ->with(VALET_HOME_PATH.'/Nginx')
+            ->andReturn(['.gitkeep', 'isolated-site-71.test', 'isolated-site-72.test', 'non-isolated-site.test']);
+
+        // Skip dotfiles
+        $fileSystemMock->shouldNotReceive('get')->with(VALET_HOME_PATH.'/Nginx/.gitkeep');
+
+        // Any isolated site running on php72 would be replaced with default valet.sock,
+        // as 72 will be the default version after the gloabl PHP version switch
+        $fileSystemMock->shouldReceive('get')
+            ->once()
+            ->with(VALET_HOME_PATH.'/Nginx/isolated-site-72.test')
+            ->andReturn('# Valet isolated PHP version : 72' . PHP_EOL .'valet72.sock');
+
+        $fileSystemMock->shouldReceive('put')->once()->withArgs([
+            VALET_HOME_PATH.'/Nginx/isolated-site-72.test',
+            '# Valet isolated PHP version : 72' . PHP_EOL .'valet.sock'
+        ]);
+
+        // Any isolated site running on current PHP version (with valet.sock),
+        // should be still be running on the same version after the global version update
+        $fileSystemMock->shouldReceive('get')
+            ->once()
+            ->with(VALET_HOME_PATH.'/Nginx/isolated-site-71.test')
+            ->andReturn('# Valet isolated PHP version : 71' . PHP_EOL .'valet.sock');
+
+        $fileSystemMock->shouldReceive('put')->once()->withArgs([
+            VALET_HOME_PATH.'/Nginx/isolated-site-71.test',
+            '# Valet isolated PHP version : 71' . PHP_EOL .'valet71.sock'
+        ]);
+
+        // Nginx config that doesn't have the isolation header, It would not swap .sock files
+        $fileSystemMock->shouldReceive('get')->once()->with(VALET_HOME_PATH.'/Nginx/non-isolated-site.test')->andReturn('valet.sock');
+        $fileSystemMock->shouldNotReceive('put')->withArgs([
+            VALET_HOME_PATH.'/Nginx/non-isolated-site.test',
+            'valet71.sock'
+        ]);
+
+        // Switching from php7.1 to php7.2
+        resolve(PhpFpm::class)->updateConfigurationForGlobalUpdate('php@7.2', 'php@7.1');
+    }
+
     public function test_stopRunning_will_pass_filtered_result_of_getRunningServices_to_stopService()
     {
         $brewMock = Mockery::mock(Brew::class);
@@ -212,12 +270,12 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $nginxMock->shouldReceive('restart');
 
         // These should only run when doing global PHP switches
-        $brewMock->shouldReceive('stopService')->never();
-        $brewMock->shouldReceive('link')->never();
-        $brewMock->shouldReceive('unlink')->never();
-        $phpFpmMock->shouldReceive('stopRunning')->never();
-        $phpFpmMock->shouldReceive('install')->never();
-        $phpFpmMock->shouldReceive('updateConfigurationForGlobalUpdate')->never();
+        $brewMock->shouldNotReceive('stopService');
+        $brewMock->shouldNotReceive('link');
+        $brewMock->shouldNotReceive('unlink');
+        $phpFpmMock->shouldNotReceive('stopRunning');
+        $phpFpmMock->shouldNotReceive('install');
+        $phpFpmMock->shouldNotReceive('updateConfigurationForGlobalUpdate');
 
         $this->assertSame(null, $phpFpmMock->useVersion('php@7.2', false, 'test'));
     }
