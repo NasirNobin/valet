@@ -430,6 +430,6 @@ class PhpFpm
                         return $this->normalizePhpVersion($phpVersion); // Example output php@7.4
                     }
                 }
-            })->merge([$this->brew->getLinkedPhpFormula()])->filter()->unique()->toArray();
+            })->merge([$this->brew->getLinkedPhpFormula()])->filter()->unique()->values()->toArray();
     }
 }

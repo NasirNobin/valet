@@ -54,7 +54,7 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $this->assertStringContainsString("\nlisten = ".VALET_HOME_PATH.'/valet72.sock', $contents);
     }
 
-    public function test_it_can_swap_socks_for_global_update()
+    public function test_it_will_swap_socks_for_global_update()
     {
         $fileSystemMock = Mockery::mock(Filesystem::class);
 
@@ -72,7 +72,7 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $fileSystemMock->shouldReceive('scandir')
             ->once()
             ->with(VALET_HOME_PATH.'/Nginx')
-            ->andReturn(['.gitkeep', 'isolated-site-71.test', 'isolated-site-72.test', 'non-isolated-site.test']);
+            ->andReturn(['.gitkeep', 'isolated-site-71.test', 'isolated-site-72.test', 'isolated-site-73.test', 'non-isolated-site.test']);
 
         // Skip dotfiles
         $fileSystemMock->shouldNotReceive('get')->with(VALET_HOME_PATH.'/Nginx/.gitkeep');
@@ -101,6 +101,17 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
             '# Valet isolated PHP version : 71' . PHP_EOL .'valet71.sock'
         ]);
 
+        // PHP 7.3 sites won't be affected here
+        $fileSystemMock->shouldReceive('get')
+            ->once()
+            ->with(VALET_HOME_PATH.'/Nginx/isolated-site-73.test')
+            ->andReturn('# Valet isolated PHP version : 73' . PHP_EOL .'valet73.sock');
+
+        $fileSystemMock->shouldNotReceive('put')->withArgs([
+            VALET_HOME_PATH.'/Nginx/isolated-site-73.test',
+            '# Valet isolated PHP version : 73' . PHP_EOL .'valet73.sock'
+        ]);
+
         // Nginx config that doesn't have the isolation header, It would not swap .sock files
         $fileSystemMock->shouldReceive('get')->once()->with(VALET_HOME_PATH.'/Nginx/non-isolated-site.test')->andReturn('valet.sock');
         $fileSystemMock->shouldNotReceive('put')->withArgs([
@@ -110,6 +121,60 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
 
         // Switching from php7.1 to php7.2
         resolve(PhpFpm::class)->updateConfigurationForGlobalUpdate('php@7.2', 'php@7.1');
+    }
+
+    public function test_it_can_retrive_utilized_php_versions()
+    {
+        $fileSystemMock = Mockery::mock(Filesystem::class);
+        $brewMock = Mockery::mock(Brew::class);
+
+        $phpFpmMock = Mockery::mock(PhpFpm::class, [
+            $brewMock,
+            Mockery::mock(CommandLine::class),
+            $fileSystemMock,
+            resolve(Configuration::class),
+            Mockery::mock(Site::class),
+            Mockery::mock(Nginx::class),
+        ])->makePartial();
+
+        swap(PhpFpm::class, $phpFpmMock);
+
+        $brewMock->shouldReceive('supportedPhpVersions')->andReturn(collect([
+            'php@7.1',
+            'php@7.2',
+            'php@7.3',
+            'php@7.4',
+        ]));
+
+        $brewMock->shouldReceive('getLinkedPhpFormula')->andReturn('php@7.3');
+
+        $fileSystemMock->shouldReceive('scandir')
+            ->once()
+            ->with(VALET_HOME_PATH.'/Nginx')
+            ->andReturn(['.gitkeep', 'isolated-site-71.test', 'isolated-site-72.test', 'isolated-site-73.test']);
+
+        $fileSystemMock->shouldNotReceive('get')->with(VALET_HOME_PATH.'/Nginx/.gitkeep');
+
+        $sites = [
+            [
+                'site' => 'isolated-site-71.test',
+                'conf' => '# Valet isolated PHP version : 71' . PHP_EOL .'valet71.sock',
+            ],
+            [
+                'site' => 'isolated-site-72.test',
+                'conf' => '# Valet isolated PHP version : php@7.2' . PHP_EOL .'valet72.sock',
+            ],
+            [
+                'site' => 'isolated-site-73.test',
+                'conf' => '# Valet isolated PHP version : 73' . PHP_EOL .'valet.sock',
+            ],
+        ];
+
+        foreach($sites as $site){
+            $fileSystemMock->shouldReceive('get')->once()->with(VALET_HOME_PATH.'/Nginx/' . $site['site'])->andReturn($site['conf']);
+        }
+
+        $this->assertEquals(['php@7.1', 'php@7.2', 'php@7.3'], resolve(PhpFpm::class)->utilizedPhpVersions());
     }
 
     public function test_stopRunning_will_pass_filtered_result_of_getRunningServices_to_stopService()
