@@ -123,6 +123,47 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         resolve(PhpFpm::class)->updateConfigurationForGlobalUpdate('php@7.2', 'php@7.1');
     }
 
+    function test_it_can_generate_sock_file_name_from_php_version()
+    {
+        $this->assertEquals('valet72.sock', resolve(PhpFpm::class)->fpmSockName('php@7.2'));
+        $this->assertEquals('valet72.sock', resolve(PhpFpm::class)->fpmSockName('php@72'));
+        $this->assertEquals('valet72.sock', resolve(PhpFpm::class)->fpmSockName('php72'));
+        $this->assertEquals('valet72.sock', resolve(PhpFpm::class)->fpmSockName('72'));
+    }
+
+    function test_it_can_stop_unused_php_versions()
+    {
+        $brewMock = Mockery::mock(Brew::class);
+
+        $phpFpmMock = Mockery::mock(PhpFpm::class, [
+            $brewMock,
+            Mockery::mock(CommandLine::class),
+            Mockery::mock(Filesystem::class),
+            resolve(Configuration::class),
+            Mockery::mock(Site::class),
+            Mockery::mock(Nginx::class),
+        ])->makePartial();
+
+        $phpFpmMock->shouldReceive('utilizedPhpVersions')->andReturn([
+            'php@7.1',
+            'php@7.2',
+        ]);
+
+        $brewMock->shouldReceive('stopService')->times(3)->with('php@7.3');
+
+        $brewMock->shouldNotReceive('stopService')->with('php@7.1');
+        $brewMock->shouldNotReceive('stopService')->with('php@7.2');
+
+        $phpFpmMock->stopIfUnused(null);
+
+        $phpFpmMock->stopIfUnused('73');
+        $phpFpmMock->stopIfUnused('php73');
+        $phpFpmMock->stopIfUnused('php@7.3');
+
+        $phpFpmMock->stopIfUnused('php@7.1');
+        $phpFpmMock->stopIfUnused('php@7.2');
+    }
+
     public function test_it_can_retrive_utilized_php_versions()
     {
         $fileSystemMock = Mockery::mock(Filesystem::class);
