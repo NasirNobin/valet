@@ -42,6 +42,18 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $this->assertStringContainsString("\nlisten = ".VALET_HOME_PATH.'/valet.sock', $contents);
     }
 
+    public function test_fpm_is_configured_with_the_correct_valet_sock_for_isolation()
+    {
+        copy(__DIR__.'/files/fpm.conf', __DIR__.'/output/fpm.conf');
+        mkdir(__DIR__.'/output/conf.d');
+        copy(__DIR__.'/files/php-memory-limits.ini', __DIR__.'/output/conf.d/php-memory-limits.ini');
+        resolve(StubForUpdatingFpmConfigFiles::class)->updateConfiguration('php@7.2');
+        $contents = file_get_contents(__DIR__.'/output/fpm.conf');
+        $this->assertStringContainsString(sprintf("\nuser = %s", user()), $contents);
+        $this->assertStringContainsString("\ngroup = staff", $contents);
+        $this->assertStringContainsString("\nlisten = ".VALET_HOME_PATH.'/valet72.sock', $contents);
+    }
+
     public function test_stopRunning_will_pass_filtered_result_of_getRunningServices_to_stopService()
     {
         $brewMock = Mockery::mock(Brew::class);
@@ -122,24 +134,32 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $brewMock = Mockery::mock(Brew::class);
         $nginxMock = Mockery::mock(Nginx::class);
         $siteMock = Mockery::mock(Site::class);
+        $cliMock = Mockery::mock(CommandLine::class);
+        $fileSystemMock = Mockery::mock(Filesystem::class);
 
         $phpFpmMock = Mockery::mock(PhpFpm::class, [
             $brewMock,
-            resolve(CommandLine::class),
-            resolve(Filesystem::class),
+            $cliMock,
+            $fileSystemMock,
             resolve(Configuration::class),
             $siteMock,
             $nginxMock,
         ])->makePartial();
 
         $phpFpmMock->shouldReceive('install');
-        $phpFpmMock->shouldReceive('updateConfigurationForGlobalUpdate');
+        $cliMock->shouldReceive('quietly')->with('sudo rm '.VALET_HOME_PATH.'/valet*.sock')->once();
+        $fileSystemMock->shouldReceive('unlink')->with(VALET_HOME_PATH.'/valet.sock')->once();
+
+        $phpFpmMock->shouldReceive('updateConfiguration')->with('php@7.1')->once();
+        $phpFpmMock->shouldReceive('updateConfigurationForGlobalUpdate')->withArgs(['php@7.2', 'php@7.1'])->once();
 
         $brewMock->shouldReceive('supportedPhpVersions')->andReturn(collect([
             'php@7.2',
             'php@5.6',
         ]));
+
         $brewMock->shouldReceive('hasLinkedPhp')->andReturn(true);
+        $brewMock->shouldReceive('linkedPhp')->andReturn('php@7.1');
         $brewMock->shouldReceive('getLinkedPhpFormula')->andReturn('php@7.1');
         $brewMock->shouldReceive('unlink')->with('php@7.1');
         $brewMock->shouldReceive('ensureInstalled')->with('php@7.2', [], $phpFpmMock->taps);
@@ -197,6 +217,7 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $brewMock->shouldReceive('unlink')->never();
         $phpFpmMock->shouldReceive('stopRunning')->never();
         $phpFpmMock->shouldReceive('install')->never();
+        $phpFpmMock->shouldReceive('updateConfigurationForGlobalUpdate')->never();
 
         $this->assertSame(null, $phpFpmMock->useVersion('php@7.2', false, 'test'));
     }
