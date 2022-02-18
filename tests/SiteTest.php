@@ -527,7 +527,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $this->assertEquals([], $site->proxies()->all());
     }
 
-    function test_can_get_site_url_from_directory()
+    public function test_can_get_site_url_from_directory()
     {
         $config = Mockery::mock(Configuration::class);
 
@@ -546,20 +546,20 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
 
         $siteMock->shouldReceive('parked')
             ->andReturn(collect([
-                "site1" => [
-                    "site" => "site1",
-                    "secured" => "",
-                    "url" => "http://site1.test",
-                    "path" => "/Users/name/code/site1",
+                'site1' => [
+                    'site' => 'site1',
+                    'secured' => '',
+                    'url' => 'http://site1.test',
+                    'path' => '/Users/name/code/site1',
                 ],
             ]));
 
         $siteMock->shouldReceive('links')->andReturn(collect([
-            "site2" => [
-                "site" => "site2",
-                "secured" => "X",
-                "url" => "http://site2.test",
-                "path" => "/Users/name/code/site2",
+            'site2' => [
+                'site' => 'site2',
+                'secured' => 'X',
+                'url' => 'http://site2.test',
+                'path' => '/Users/name/code/site2',
             ],
         ]));
 
@@ -580,7 +580,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $this->assertEquals(false, $site->getSiteUrl('site3.test'));
     }
 
-    function test_adding_ssl_certificate_would_preserve_isolation()
+    public function test_adding_ssl_certificate_would_preserve_isolation()
     {
         $files = Mockery::mock(Filesystem::class);
         $config = Mockery::mock(Configuration::class);
@@ -611,7 +611,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $siteMock->secure('site3.test');
     }
 
-    function test_removing_ssl_certificate_would_preserve_isolation()
+    public function test_removing_ssl_certificate_would_preserve_isolation()
     {
         $files = Mockery::mock(Filesystem::class);
         $config = Mockery::mock(Configuration::class);
@@ -639,7 +639,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $siteMock->unsecure('site3.test');
     }
 
-    function test_can_install_nginx_site_config_for_specific_php_version()
+    public function test_can_install_nginx_site_config_for_specific_php_version()
     {
         $files = Mockery::mock(Filesystem::class);
         $config = Mockery::mock(Configuration::class);
@@ -682,13 +682,13 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
                     return preg_match('/^# Valet isolated PHP version : php@8.0/', $argument)
                         && preg_match('#fastcgi_pass "unix:.*/valet80.sock#', $argument)
                         && strpos($argument, 'server_name site2.test www.site2.test *.site2.test;') !== false;
-                })
+                }),
             ]);
 
         $siteMock->installSiteConfig('site2.test', 'valet80.sock', 'php@8.0');
     }
 
-    function test_can_remove_isolation()
+    public function test_can_remove_isolation()
     {
         $files = Mockery::mock(Filesystem::class);
 
@@ -711,7 +711,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $siteMock->removeIsolation('site2.test');
     }
 
-    function test_can_retrive_custom_php_version_from_nginx_config()
+    public function test_can_retrive_custom_php_version_from_nginx_config()
     {
         $files = Mockery::mock(Filesystem::class);
 
@@ -740,7 +740,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $this->assertEquals(null, $siteMock->customPhpVersion('site3.test'));
     }
 
-    function test_can_replace_sock_file_in_nginx_config()
+    public function test_can_replace_sock_file_in_nginx_config()
     {
         $site = resolve(Site::class);
 
