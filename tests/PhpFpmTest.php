@@ -109,7 +109,7 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
 
         $fileSystemMock->shouldNotReceive('put')->withArgs([
             VALET_HOME_PATH.'/Nginx/isolated-site-73.test',
-            '# Valet isolated PHP version : 73'.PHP_EOL.'valet73.sock',
+            Mockery::any()
         ]);
 
         // Nginx config that doesn't have the isolation header, It would not swap .sock files
