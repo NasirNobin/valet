@@ -628,10 +628,12 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $cli->shouldReceive('run');
         $files->shouldReceive('exists')->andReturn(false);
 
+        // If site has an isolated the PHP version for this site, it would install site config
         $siteMock->shouldReceive('customPhpVersion')->with('site1.test')->andReturn('73')->once();
         $siteMock->shouldReceive('installSiteConfig')->withArgs(['site1.test', 'valet73.sock', '73'])->once();
         resolve(Site::class)->unsecure('site1.test');
 
+        // Site without a custom PHP version, should not install site config
         $siteMock->shouldReceive('customPhpVersion')->with('site2.test')->andReturn(null)->once();
         $siteMock->shouldNotReceive('installSiteConfig');
         resolve(Site::class)->unsecure('site2.test');
@@ -749,21 +751,28 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
     {
         $site = resolve(Site::class);
 
+        // Switiching to php71, valet71.sock should be replaced with valet.sock
+        // It would prepend isolation header
         $this->assertEquals(
             "# Valet isolated PHP version : 71\nserver { fastcgi_pass: valet.sock }",
             $site->replaceSockFile('server { fastcgi_pass: valet71.sock }', 'valet.sock', '71')
         );
 
+        // Switiching to php72, valet.sock should be replaced with valet72.sock
         $this->assertEquals(
             "# Valet isolated PHP version : 72\nserver { fastcgi_pass: valet72.sock }",
             $site->replaceSockFile('server { fastcgi_pass: valet.sock }', 'valet72.sock', '72')
         );
 
+        // Switiching to php73 from php72, valet72.sock should be replaced with valet73.sock
+        // Isolation header should be updated to 73
         $this->assertEquals(
             "# Valet isolated PHP version : 73\nserver { fastcgi_pass: valet73.sock }",
             $site->replaceSockFile("# Valet isolated PHP version : 72\nserver { fastcgi_pass: valet72.sock }", 'valet73.sock', '73')
         );
 
+        // Switiching to php72 from php74, valet72.sock should be replaced with valet74.sock
+        // Isolation header should be updated to php@7.4
         $this->assertEquals(
             "# Valet isolated PHP version : php@7.4\nserver { fastcgi_pass: valet74.sock }",
             $site->replaceSockFile("# Valet isolated PHP version : 72\nserver { fastcgi_pass: valet.sock }", 'valet74.sock', 'php@7.4')
