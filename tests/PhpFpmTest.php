@@ -78,7 +78,7 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $fileSystemMock->shouldNotReceive('get')->with(VALET_HOME_PATH.'/Nginx/.gitkeep');
 
         // Any isolated site running on php72 would be replaced with default valet.sock,
-        // as 72 will be the default version after the gloabl PHP version switch
+        // as 72 will be the default version after the global PHP version switch
         $fileSystemMock->shouldReceive('get')
             ->once()
             ->with(VALET_HOME_PATH.'/Nginx/isolated-site-72.test')
