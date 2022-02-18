@@ -336,7 +336,6 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
 
         $nginxMock->shouldReceive('restart');
 
-        // Test both non prefixed and prefixed
         $this->assertSame('php@7.2', $phpFpmMock->useVersion('php@7.2'));
     }
 
