@@ -600,12 +600,12 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $siteMock->shouldReceive('createCertificate');
         $siteMock->shouldReceive('buildSecureNginxServer');
 
-        // If site has an isolated the PHP version for this site, it would replace .sock file
+        // If site has an isolated PHP version for the site, it would replace .sock file
         $siteMock->shouldReceive('customPhpVersion')->with('site1.test')->andReturn('73')->once();
         $siteMock->shouldReceive('replaceSockFile')->withArgs([Mockery::any(), 'valet73.sock', '73'])->once();
         resolve(Site::class)->secure('site1.test');
 
-        // Sites without custom isolated PHP version, should not replace anything
+        // Sites without isolated PHP version, should not replace anything
         $siteMock->shouldReceive('customPhpVersion')->with('site2.test')->andReturn(null)->once();
         $siteMock->shouldNotReceive('replaceSockFile');
         resolve(Site::class)->secure('site2.test');
@@ -628,7 +628,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $cli->shouldReceive('run');
         $files->shouldReceive('exists')->andReturn(false);
 
-        // If site has an isolated the PHP version for this site, it would install site config
+        // If site has an isolated PHP version, it would install nginx site config
         $siteMock->shouldReceive('customPhpVersion')->with('site1.test')->andReturn('73')->once();
         $siteMock->shouldReceive('installSiteConfig')->withArgs(['site1.test', 'valet73.sock', '73'])->once();
         resolve(Site::class)->unsecure('site1.test');
@@ -653,7 +653,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $config->shouldReceive('read')
             ->andReturn(['tld' => 'test', 'loopback' => VALET_LOOPBACK]);
 
-        // Modify Exising Config
+        // If Nginx config exists for the site, modify exising config
         $files->shouldReceive('exists')->once()->with($siteMock->nginxPath('site1.test'))->andReturn(true);
 
         $files->shouldReceive('get')
@@ -667,7 +667,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
 
         $siteMock->installSiteConfig('site1.test', 'valet80.sock', 'php@8.0');
 
-        // Create New Config
+        // When there's no Nginx file exists, create new config from the template
         $files->shouldReceive('exists')->once()->with($siteMock->nginxPath('site2.test'))->andReturn(false);
         $files->shouldReceive('get')
             ->once()
