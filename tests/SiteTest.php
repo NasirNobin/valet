@@ -665,7 +665,7 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
             ->once()
             ->withArgs([
                 $siteMock->nginxPath('site1.test'),
-                "# Valet isolated PHP version : php@8.0".PHP_EOL."server { fastcgi_pass: valet80.sock }"
+                '# Valet isolated PHP version : php@8.0'.PHP_EOL.'server { fastcgi_pass: valet80.sock }',
             ]);
 
         $siteMock->installSiteConfig('site1.test', 'valet80.sock', 'php@8.0');

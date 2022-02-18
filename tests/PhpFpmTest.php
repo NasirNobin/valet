@@ -134,7 +134,7 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
                 'isolated-site-71.test',
                 'isolated-site-72.test',
                 'isolated-site-73.test',
-                'non-isolated-site.test'
+                'non-isolated-site.test',
             ]);
 
         // Skip dotfiles
@@ -145,11 +145,11 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $fileSystemMock->shouldReceive('get')
             ->once()
             ->with(VALET_HOME_PATH.'/Nginx/isolated-site-72.test')
-            ->andReturn("# Valet isolated PHP version : 72".PHP_EOL."server { fastcgi_pass: valet72.sock }");
+            ->andReturn('# Valet isolated PHP version : 72'.PHP_EOL.'server { fastcgi_pass: valet72.sock }');
 
         $fileSystemMock->shouldReceive('put')->once()->withArgs([
             VALET_HOME_PATH.'/Nginx/isolated-site-72.test',
-            "# Valet isolated PHP version : 72".PHP_EOL."server { fastcgi_pass: valet.sock }",
+            '# Valet isolated PHP version : 72'.PHP_EOL.'server { fastcgi_pass: valet.sock }',
         ]);
 
         // Any isolated site running on current PHP version (with valet.sock),
@@ -157,18 +157,18 @@ class PhpFpmTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
         $fileSystemMock->shouldReceive('get')
             ->once()
             ->with(VALET_HOME_PATH.'/Nginx/isolated-site-71.test')
-            ->andReturn("# Valet isolated PHP version : 71".PHP_EOL."server { fastcgi_pass: valet.sock }");
+            ->andReturn('# Valet isolated PHP version : 71'.PHP_EOL.'server { fastcgi_pass: valet.sock }');
 
         $fileSystemMock->shouldReceive('put')->once()->withArgs([
             VALET_HOME_PATH.'/Nginx/isolated-site-71.test',
-            "# Valet isolated PHP version : 71".PHP_EOL."server { fastcgi_pass: valet71.sock }",
+            '# Valet isolated PHP version : 71'.PHP_EOL.'server { fastcgi_pass: valet71.sock }',
         ]);
 
         // PHP 7.3 sites won't be affected here
         $fileSystemMock->shouldReceive('get')
             ->once()
             ->with(VALET_HOME_PATH.'/Nginx/isolated-site-73.test')
-            ->andReturn("# Valet isolated PHP version : 73".PHP_EOL."server { fastcgi_pass: valet73.sock }");
+            ->andReturn('# Valet isolated PHP version : 73'.PHP_EOL.'server { fastcgi_pass: valet73.sock }');
 
         $fileSystemMock->shouldNotReceive('put')->withArgs([
             VALET_HOME_PATH.'/Nginx/isolated-site-73.test',
