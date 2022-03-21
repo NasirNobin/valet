@@ -529,6 +529,11 @@ You might also want to investigate your global Composer configs. Helpful command
      * Allow the user to change the version of PHP Valet uses to serve the current site.
      */
     $app->command('isolate [phpVersion] ', function ($phpVersion) {
+        if (! $phpVersion) {
+            $path = getcwd().'/.valetphprc';
+            $phpVersion = trim(file_get_contents($path));
+            info("Found '{$path}' specifying version: {$phpVersion}");
+        }
         PhpFpm::isolateDirectory(basename(getcwd()), $phpVersion);
     })->descriptions('Change the version of PHP used by Valet to serve the current working directory', [
         'phpVersion' => 'The PHP version you want to use, e.g php@7.3',
