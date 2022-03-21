@@ -514,7 +514,7 @@ You might also want to investigate your global Composer configs. Helpful command
                 info("Found '{$path}' specifying version: {$phpVersion}");
             }
 
-            if(! $phpVersion){
+            if (! $phpVersion) {
                 $site = basename(getcwd()).'.'.data_get(Configuration::read(), 'tld');
                 if ($phpVersion = Site::customPhpVersion($site)) {
                     $phpVersion = PhpFpm::normalizePhpVersion($phpVersion);
@@ -522,11 +522,11 @@ You might also want to investigate your global Composer configs. Helpful command
                 }
             }
 
-            if(! $phpVersion){
+            if (! $phpVersion) {
                 return info("Valet is using {$linkedVersion}.");
             }
 
-            if ($linkedVersion == $phpVersion && !$force) {
+            if ($linkedVersion == $phpVersion && ! $force) {
                 return info("Valet is already using {$linkedVersion}.");
             }
         }
@@ -542,7 +542,7 @@ You might also want to investigate your global Composer configs. Helpful command
     $app->command('isolate [phpVersion] [--site=]', function ($phpVersion, $site = null) {
         if (! $phpVersion) {
             $path = getcwd().'/.valetphprc';
-            if( file_exists($path)) {
+            if (file_exists($path)) {
                 $phpVersion = trim(file_get_contents($path));
                 info("Found '{$path}' specifying version: {$phpVersion}");
             }
