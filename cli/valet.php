@@ -508,12 +508,22 @@ You might also want to investigate your global Composer configs. Helpful command
         if (! $phpVersion) {
             $path = getcwd().'/.valetphprc';
             $linkedVersion = Brew::linkedPhp();
-            if (! file_exists($path)) {
-                return info("Valet is using {$linkedVersion}.");
+
+            if (file_exists($path)) {
+                $phpVersion = trim(file_get_contents($path));
+                info("Found '{$path}' specifying version: {$phpVersion}");
+            } else {
+                // check for isolated version?
+                $site = Site::getSiteUrl(basename(getcwd()));
+                if($site && $phpVersion = Site::customPhpVersion($site)){
+                    $phpVersion = PhpFpm::normalizePhpVersion($phpVersion);
+                    info("Found isolated site '{$site}' specifying version: {$phpVersion}");
+                }
             }
 
-            $phpVersion = trim(file_get_contents($path));
-            info("Found '{$path}' specifying version: {$phpVersion}");
+            if(! $phpVersion){
+                return info("Valet is using {$linkedVersion}.");
+            }
 
             if ($linkedVersion == $phpVersion) {
                 return info("Valet is already using {$linkedVersion}.");
