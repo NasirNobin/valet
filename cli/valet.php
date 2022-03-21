@@ -512,10 +512,8 @@ You might also want to investigate your global Composer configs. Helpful command
             if (file_exists($path)) {
                 $phpVersion = trim(file_get_contents($path));
                 info("Found '{$path}' specifying version: {$phpVersion}");
-            } else {
-                // check for isolated version?
-                $site = Site::getSiteUrl(basename(getcwd()));
-                if($site && $phpVersion = Site::customPhpVersion($site)){
+            } elseif ($site = Site::getSiteUrl(basename(getcwd()))) {
+                if($phpVersion = Site::customPhpVersion($site)){
                     $phpVersion = PhpFpm::normalizePhpVersion($phpVersion);
                     info("Found isolated site '{$site}' specifying version: {$phpVersion}");
                 }
@@ -541,8 +539,10 @@ You might also want to investigate your global Composer configs. Helpful command
     $app->command('isolate [phpVersion] ', function ($phpVersion) {
         if (! $phpVersion) {
             $path = getcwd().'/.valetphprc';
-            $phpVersion = trim(file_get_contents($path));
-            info("Found '{$path}' specifying version: {$phpVersion}");
+            if( file_exists($path)) {
+                $phpVersion = trim(file_get_contents($path));
+                info("Found '{$path}' specifying version: {$phpVersion}");
+            }
         }
         PhpFpm::isolateDirectory(basename(getcwd()), $phpVersion);
     })->descriptions('Change the version of PHP used by Valet to serve the current working directory', [
