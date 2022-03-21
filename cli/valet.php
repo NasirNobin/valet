@@ -512,8 +512,11 @@ You might also want to investigate your global Composer configs. Helpful command
             if (file_exists($path)) {
                 $phpVersion = trim(file_get_contents($path));
                 info("Found '{$path}' specifying version: {$phpVersion}");
-            } elseif ($site = Site::getSiteUrl(basename(getcwd()))) {
-                if($phpVersion = Site::customPhpVersion($site)){
+            }
+
+            if(! $phpVersion){
+                $site = basename(getcwd()).'.'.data_get(Configuration::read(), 'tld');
+                if ($phpVersion = Site::customPhpVersion($site)) {
                     $phpVersion = PhpFpm::normalizePhpVersion($phpVersion);
                     info("Found isolated site '{$site}' specifying version: {$phpVersion}");
                 }
