@@ -20,6 +20,29 @@ then
     DIR=$(php -r "echo realpath('$DIR/../laravel/valet');")
 fi
 
+function GET_PHP_EXECUTABLE_PATH() {
+    TLD=$(php "$DIR/cli/valet.php" tld)
+    BREW_PREFIX=$(brew --prefix)
+    NGINX_CONF_PATH="$HOME/.config/valet/Nginx/$(basename $PWD).$TLD"
+
+    if [ ! -f "$NGINX_CONF_PATH" ]
+    then
+        echo "$NGINX_CONF_PATH doesn't exists"
+        exit
+    fi
+
+    PHP_VERSION=$(grep ISOLATED_PHP_VERSION $NGINX_CONF_PATH | sed 's/[^0-9]//g')
+    PHP_EXECUTABLE_PATH="$BREW_PREFIX/bin/valetphp$PHP_VERSION"
+
+    if [ ! -f "$PHP_EXECUTABLE_PATH" ]
+    then
+        echo "$PHP_EXECUTABLE_PATH doesn't exists"
+        exit
+    fi
+
+    echo "$PHP_EXECUTABLE_PATH"
+}
+
 # If the command is the "share" command we will need to resolve out any
 # symbolic links for the site. Before starting Ngrok, we will fire a
 # process to retrieve the live Ngrok tunnel URL in the background.
@@ -82,18 +105,22 @@ then
 
     exit
 
+# Get the PHP executable path for a site
+elif [[ "$1" = "which-php" ]]
+then
+    GET_PHP_EXECUTABLE_PATH
+    exit
+
 # Proxy PHP commands to the "php" executable on the isolated site
 elif [[ "$1" = "php" ]]
 then
-    $(php "$DIR/cli/valet.php" which-php) "${@:2}"
-
+    $(GET_PHP_EXECUTABLE_PATH) "${@:2}"
     exit
 
 # Proxy Composer commands with the "php" executable on the isolated site
 elif [[ "$1" = "composer" ]]
 then
-    $(php "$DIR/cli/valet.php" which-php) $(which composer) "${@:2}"
-
+    $(GET_PHP_EXECUTABLE_PATH) $(which composer) "${@:2}"
     exit
 
 # Finally, for every other command we will just proxy into the PHP tool
