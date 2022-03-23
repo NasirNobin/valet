@@ -311,24 +311,26 @@ class Brew
             return BREW_PREFIX.'/bin/php';
         }
 
-        $versionInteger = preg_replace('~[^\d]~', '', $phpVersion);
-        $symlinkedValetPhpPath = BREW_PREFIX."/bin/valetphp{$versionInteger}";
-
-        // If the symlinked Valet PHP path exists, then we can use that
-        if (! $skipCache && $this->files->isLink($symlinkedValetPhpPath)) {
-            $phpExecutablePath = $this->files->readLink($symlinkedValetPhpPath);
-
-            // Still make sure that the version of the executable exists
-            if ($this->files->exists($phpExecutablePath)) {
-                return $phpExecutablePath;
-            }
-        }
+        // $versionInteger = preg_replace('~[^\d]~', '', $phpVersion);
+        // $symlinkedValetPhpPath = BREW_PREFIX."/bin/valetphp{$versionInteger}";
+        //
+        // // If the symlinked Valet PHP path exists, then we can use that
+        // if (! $skipCache && $this->files->isLink($symlinkedValetPhpPath)) {
+        //     $phpExecutablePath = $this->files->readLink($symlinkedValetPhpPath);
+        //
+        //     // Still make sure that the version of the executable exists
+        //     if ($this->files->exists($phpExecutablePath)) {
+        //         return $phpExecutablePath;
+        //     }
+        // }
 
         // If the symlinked Valet PHP path doesn't exist, then we need to look for the correct executable path
         // Create a symlink to the Valet PHP version, so next time Valet won't have to look for the executable path
-        if ($phpExecutablePath = $this->getPhpExecutablePath($phpVersion)) {
-            $this->files->symlinkAsUser($phpExecutablePath, $symlinkedValetPhpPath);
-        }
+        // if ($phpExecutablePath = $this->getPhpExecutablePath($phpVersion)) {
+        //     $this->files->symlinkAsUser($phpExecutablePath, $symlinkedValetPhpPath);
+        // }
+
+        $phpExecutablePath = $this->getPhpExecutablePath($phpVersion);
 
         return $phpExecutablePath ?: BREW_PREFIX.'/bin/php';
     }
@@ -343,26 +345,40 @@ class Brew
     {
         $phpExecutablePath = null;
 
-        $cellar = $this->cli->runAsUser("brew --cellar $phpVersion"); // Example output: `/opt/homebrew/Cellar/php@8.0`
-        $details = json_decode($this->cli->runAsUser("brew info --json $phpVersion"), true);
-        $phpDirectory = data_get($details, '0.linked_keg');
-
-        if (is_null($phpDirectory) && $installed = data_get($details, '0.installed')) {
-            $phpDirectory = data_get(collect($installed)->where('installed_as_dependency', false)->last(), 'version');
-
-            if (is_null($phpDirectory)) {
-                $phpDirectory = data_get(collect($installed)->last(), 'version');
-            }
-        }
-
-        if (isset($phpDirectory) && $this->files->exists(trim($cellar).'/'.$phpDirectory.'/bin/php')) {
-            $phpExecutablePath = trim($cellar).'/'.$phpDirectory.'/bin/php';
-        }
-
-        // When PHP Version is installed directly though shivammathur/homebrew-php, it usually stores the binaries in this directory
-        if (is_null($phpExecutablePath) && $this->files->exists(BREW_PREFIX."/opt/{$phpVersion}/bin/php")) {
+        if ($this->files->exists(BREW_PREFIX."/opt/{$phpVersion}/bin/php")) {
             $phpExecutablePath = BREW_PREFIX."/opt/{$phpVersion}/bin/php";
         }
+
+        if (is_null($phpExecutablePath) && $this->files->exists(BREW_PREFIX."/opt/php/bin/php")) {
+            $phpExecutablePath = BREW_PREFIX."/opt/php/bin/php";
+        }
+
+        if($phpExecutablePath){
+            $phpExecutablePath = $this->files->readLink($phpExecutablePath);
+
+
+        }
+
+        // $cellar = $this->cli->runAsUser("brew --cellar $phpVersion"); // Example output: `/opt/homebrew/Cellar/php@8.0`
+        // $details = json_decode($this->cli->runAsUser("brew info --json $phpVersion"), true);
+        // $phpDirectory = data_get($details, '0.linked_keg');
+        //
+        // if (is_null($phpDirectory) && $installed = data_get($details, '0.installed')) {
+        //     $phpDirectory = data_get(collect($installed)->where('installed_as_dependency', false)->last(), 'version');
+        //
+        //     if (is_null($phpDirectory)) {
+        //         $phpDirectory = data_get(collect($installed)->last(), 'version');
+        //     }
+        // }
+        //
+        // if (isset($phpDirectory) && $this->files->exists(trim($cellar).'/'.$phpDirectory.'/bin/php')) {
+        //     $phpExecutablePath = trim($cellar).'/'.$phpDirectory.'/bin/php';
+        // }
+        //
+        // // When PHP Version is installed directly though shivammathur/homebrew-php, it usually stores the binaries in this directory
+        // if (is_null($phpExecutablePath) && $this->files->exists(BREW_PREFIX."/opt/{$phpVersion}/bin/php")) {
+        //     $phpExecutablePath = BREW_PREFIX."/opt/{$phpVersion}/bin/php";
+        // }
 
         return $phpExecutablePath;
     }
