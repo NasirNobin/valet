@@ -31,16 +31,36 @@ function GET_PHP_EXECUTABLE_PATH() {
         exit
     fi
 
-    PHP_VERSION=$(grep ISOLATED_PHP_VERSION $NGINX_CONF_PATH | sed 's/[^0-9]//g')
-    PHP_EXECUTABLE_PATH="$BREW_PREFIX/bin/valetphp$PHP_VERSION"
+    #  Check for symlink
+    PHP_VERSION=$(grep ISOLATED_PHP_VERSION "$NGINX_CONF_PATH" | sed 's/[^0-9]//g')
+    VALET_PHP_SYMLINKED_PATH="$BREW_PREFIX/bin/valetphp$PHP_VERSION"
+
+    if [ "$1" == "--skip-cache" ]
+    then
+        rm -f "$VALET_PHP_SYMLINKED_PATH"
+    fi
+
+    if [ -f "$VALET_PHP_SYMLINKED_PATH" ]
+    then
+        echo "$VALET_PHP_SYMLINKED_PATH"
+        exit
+    fi
+
+    # Find the PHP executable and create a symbolic link to it
+    PHP_VERSION=$(echo "$PHP_VERSION" | sed -E 's/([0-9])([0-9])/\1\.\2/')
+    CELLAR_PATH="$(brew --cellar php@$PHP_VERSION)"
+    PHP_EXECUTABLE_PATH="$CELLAR_PATH/$(ls $CELLAR_PATH | grep $PHP_VERSION | head -1)/bin/php"
 
     if [ ! -f "$PHP_EXECUTABLE_PATH" ]
     then
         echo "$PHP_EXECUTABLE_PATH doesn't exists"
-        exit
+        exit 1
     fi
 
-    echo "$PHP_EXECUTABLE_PATH"
+    ln -s "$PHP_EXECUTABLE_PATH" "$VALET_PHP_SYMLINKED_PATH"
+
+    echo "$VALET_PHP_SYMLINKED_PATH"
+    exit
 }
 
 # If the command is the "share" command we will need to resolve out any
@@ -108,7 +128,7 @@ then
 # Get the PHP executable path for a site
 elif [[ "$1" = "which-php" ]]
 then
-    GET_PHP_EXECUTABLE_PATH
+    GET_PHP_EXECUTABLE_PATH "$2"
     exit
 
 # Proxy PHP commands to the "php" executable on the isolated site
