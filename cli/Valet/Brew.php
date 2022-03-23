@@ -298,32 +298,28 @@ class Brew
             return BREW_PREFIX.'/bin/php';
         }
 
-        $phpExecutablePath = null;
-
         // Check the default `/opt/homebrew/opt/php@8.1/bin/php` location first
         if ($this->files->exists(BREW_PREFIX."/opt/{$phpVersion}/bin/php")) {
-            $phpExecutablePath = BREW_PREFIX."/opt/{$phpVersion}/bin/php";
+            return BREW_PREFIX."/opt/{$phpVersion}/bin/php";
         }
 
         // Check the `/opt/homebrew/opt/php71/bin/php` location for older installations
-        if (is_null($phpExecutablePath)) {
-            $phpVersion = str_replace(['@', '.'], '' , $phpVersion); // php@8.1 to php81
-            if ($this->files->exists(BREW_PREFIX."/opt/{$phpVersion}/bin/php")) {
-                $phpExecutablePath = BREW_PREFIX."/opt/{$phpVersion}/bin/php";
-            }
+        $phpVersion = str_replace(['@', '.'], '' , $phpVersion); // php@8.1 to php81
+        if ($this->files->exists(BREW_PREFIX."/opt/{$phpVersion}/bin/php")) {
+            return BREW_PREFIX."/opt/{$phpVersion}/bin/php";
         }
 
         // Check if the default PHP is the version we are looking for
-        if (is_null($phpExecutablePath) && $this->files->isLink(BREW_PREFIX."/opt/php")) {
+        if ($this->files->isLink(BREW_PREFIX."/opt/php")) {
             $resolvedPath = $this->files->readLink(BREW_PREFIX."/opt/php");
             $matches = $this->parsePhpPath($resolvedPath);
             $resolvedPhpVersion = $matches[3] ?: $matches[2];
             if ($this->isPhpVersionsEqual($resolvedPhpVersion, $phpVersion)) {
-                $phpExecutablePath = BREW_PREFIX."/opt/php/bin/php";
+                return BREW_PREFIX."/opt/php/bin/php";
             }
         }
 
-        return $phpExecutablePath ?: BREW_PREFIX.'/bin/php';
+        return BREW_PREFIX.'/bin/php';
     }
 
     /**
@@ -493,12 +489,13 @@ class Brew
     }
 
     /**
-     * Parse PHP Path
+     * Parse homebrew PHP Path
      *
      * @param  string  $resolvedPath
+     *
      * @return mixed
      */
-    public function parsePhpPath(string $resolvedPath)
+    public function parsePhpPath($resolvedPath)
     {
         /**
          * Typical homebrew path resolutions are like:
