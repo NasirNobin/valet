@@ -345,18 +345,40 @@ class Brew
     {
         $phpExecutablePath = null;
 
-        if ($this->files->exists(BREW_PREFIX."/opt/{$phpVersion}/bin/php")) {
-            $phpExecutablePath = BREW_PREFIX."/opt/{$phpVersion}/bin/php";
-        }
+        // if ($this->files->exists(BREW_PREFIX."/opt/{$phpVersion}/bin/php")) {
+        //     $phpExecutablePath = BREW_PREFIX."/opt/{$phpVersion}/bin/php";
+        // }
+        // /bin/php
+        // /bin/php
 
-        if (is_null($phpExecutablePath) && $this->files->exists(BREW_PREFIX."/opt/php/bin/php")) {
-            $phpExecutablePath = BREW_PREFIX."/opt/php/bin/php";
-        }
+        // dump( $matches = $this->getParsedLinkedPhp());
+        // dump($this->getLinkedPhpFormula());
+        // dump($this->linkedPhp());
+        // die;
 
-        if($phpExecutablePath){
-            $phpExecutablePath = $this->files->readLink($phpExecutablePath);
+        if (is_null($phpExecutablePath) && $this->files->exists(BREW_PREFIX."/opt/php")) {
+            $resolvedPath = $this->files->readLink(BREW_PREFIX."/opt/php");
 
+            dump($resolvedPath);
 
+            /**
+             * Typical homebrew path resolutions are like:
+             * "../Cellar/php@7.4/7.4.13/bin/php"
+             * or older styles:
+             * "../Cellar/php/7.4.9_2/bin/php
+             * "../Cellar/php55/bin/php.
+             */
+            preg_match('~\w{3,}/(php)(@?\d\.?\d)?/(\d\.\d)?([_\d\.]*)?/?\w{3,}~', $resolvedPath, $matches);
+
+            // $matches[1] . $matches[2]
+
+            dump('$matches', $matches);
+
+            dump('2:2', $matches[1].$matches[2]);
+
+            dump('$resolvedPhpVersion', $resolvedPhpVersion = $matches[3] ?: $matches[2]);
+
+            die;
         }
 
         // $cellar = $this->cli->runAsUser("brew --cellar $phpVersion"); // Example output: `/opt/homebrew/Cellar/php@8.0`
