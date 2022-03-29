@@ -3,6 +3,7 @@
 namespace Valet;
 
 use DomainException;
+use PhpFpm;
 
 class Site
 {
@@ -1119,11 +1120,9 @@ class Site
     {
         $host = $this->host($directory).'.'.$this->config->read()['tld'];
 
-        if ($phpVersion = $this->customPhpVersion($host)) {
-            return $phpVersion;
-        }
+        $phpVersion = $this->customPhpVersion($host);
 
-        if ($site = $this->parked()->merge($this->links())->where('site', $directory)->first()) {
+        if (is_null($phpVersion) && $site = $this->parked()->merge($this->links())->where('site', $directory)->first()) {
             $path = data_get($site, 'path').'/.valetphprc';
 
             if ($this->files->exists($path)) {
@@ -1131,6 +1130,6 @@ class Site
             }
         }
 
-        return $phpVersion;
+        return PhpFpm::normalizePhpVersion($phpVersion);
     }
 }
