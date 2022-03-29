@@ -819,6 +819,11 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
 
         $this->assertSame(['helloworld.tld'], $sites);
     }
+
+    public function test_it_can_read_php_rc_version()
+    {
+
+    }
 }
 
 class CommandLineFake extends CommandLine

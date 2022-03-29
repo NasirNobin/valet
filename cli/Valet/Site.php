@@ -1108,4 +1108,29 @@ class Site
 
         return '# '.ISOLATED_PHP_VERSION.'='.$phpVersion.PHP_EOL.$siteConf;
     }
+
+    /**
+     * XX
+     *
+     * @param  string  $directory
+     * @return string|null
+     */
+    public function phpRcVersion($directory)
+    {
+        $host = $this->host($directory).'.'.$this->config->read()['tld'];
+
+        if ($phpVersion = $this->customPhpVersion($host)) {
+            return $phpVersion;
+        }
+
+        if ($site = $this->parked()->merge($this->links())->where('site', $directory)->first()) {
+            $path = data_get($site, 'path').'/.valetphprc';
+
+            if ($this->files->exists($path)) {
+                $phpVersion = trim($this->files->get($path));
+            }
+        }
+
+        return $phpVersion;
+    }
 }
