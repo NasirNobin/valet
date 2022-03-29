@@ -858,21 +858,15 @@ class SiteTest extends Yoast\PHPUnitPolyfills\TestCases\TestCase
             ],
         ]));
 
-        $siteMock->shouldReceive('host')->with('site1')->andReturn('site1');
-        $siteMock->shouldReceive('customPhpVersion')->with('site1.test')->andReturn('81');
-
-        $siteMock->shouldReceive('host')->with('site2')->andReturn('site2');
-        $siteMock->shouldReceive('customPhpVersion')->with('site2.test')->andReturn(null);
-
-        $siteMock->shouldReceive('host')->with('site3')->andReturn('site3');
-        $siteMock->shouldReceive('customPhpVersion')->with('site3.test')->andReturn(null);
+        $files->shouldReceive('exists')->with('/Users/name/code/site1/.valetphprc')->andReturn(true);
+        $files->shouldReceive('get')->with('/Users/name/code/site1/.valetphprc')->andReturn('php@8.1');
 
         $files->shouldReceive('exists')->with('/Users/name/some-other-directory/site2/.valetphprc')->andReturn(true);
         $files->shouldReceive('get')->with('/Users/name/some-other-directory/site2/.valetphprc')->andReturn('php@8.0');
 
         $this->assertEquals('php@8.1', $siteMock->phpRcVersion('site1'));
         $this->assertEquals('php@8.0', $siteMock->phpRcVersion('site2'));
-        $this->assertEquals(null, $siteMock->phpRcVersion('site3'));
+        $this->assertEquals(null, $siteMock->phpRcVersion('site3')); // Site doesn't exists
     }
 }
 

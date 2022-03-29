@@ -1111,25 +1111,19 @@ class Site
     }
 
     /**
-     * XX
+     * Get PHP version from .valetphprc for a site.
      *
-     * @param  string  $directory
+     * @param  string  $site
      * @return string|null
      */
-    public function phpRcVersion($directory)
+    public function phpRcVersion($site)
     {
-        $host = $this->host($directory).'.'.$this->config->read()['tld'];
-
-        $phpVersion = $this->customPhpVersion($host);
-
-        if (is_null($phpVersion) && $site = $this->parked()->merge($this->links())->where('site', $directory)->first()) {
+        if ($site = $this->parked()->merge($this->links())->where('site', $site)->first()) {
             $path = data_get($site, 'path').'/.valetphprc';
 
             if ($this->files->exists($path)) {
-                $phpVersion = trim($this->files->get($path));
+                return PhpFpm::normalizePhpVersion(trim($this->files->get($path)));
             }
         }
-
-        return PhpFpm::normalizePhpVersion($phpVersion);
     }
 }

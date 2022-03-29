@@ -571,7 +571,14 @@ You might also want to investigate your global Composer configs. Helpful command
      * Get the PHP executable path for a site.
      */
     $app->command('which-php [site]', function ($site) {
-        return output(Brew::getPhpExecutablePath(Site::phpRcVersion($site ?: basename(getcwd()))));
+        $host = Site::host($site ?: getcwd()).'.'.Configuration::read()['tld'];
+        $phpVersion = Site::customPhpVersion($host);
+
+        if (! $phpVersion) {
+            $phpVersion = Site::phpRcVersion($site ?: basename(getcwd()));
+        }
+
+        return output(Brew::getPhpExecutablePath($phpVersion));
     })->descriptions('Get the PHP executable path for a given site', [
         'site' => 'The site to get the PHP executable path for',
     ]);
