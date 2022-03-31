@@ -32,7 +32,7 @@ if (is_dir(VALET_LEGACY_HOME_PATH) && ! is_dir(VALET_HOME_PATH)) {
  */
 Container::setInstance(new Container);
 
-$version = '2.18.10';
+$version = '3.1.0';
 
 $app = new Application('Laravel Valet', $version);
 
@@ -506,19 +506,15 @@ You might also want to investigate your global Composer configs. Helpful command
      */
     $app->command('use [phpVersion] [--force]', function ($phpVersion, $force) {
         if (! $phpVersion) {
-            $path = getcwd().'/.valetphprc';
+            $site = basename(getcwd());
             $linkedVersion = Brew::linkedPhp();
 
-            if (file_exists($path)) {
-                $phpVersion = trim(file_get_contents($path));
-                info("Found '{$path}' specifying version: {$phpVersion}");
-            }
-
-            if (! $phpVersion) {
-                $site = basename(getcwd()).'.'.data_get(Configuration::read(), 'tld');
-                if ($phpVersion = Site::customPhpVersion($site)) {
-                    $phpVersion = PhpFpm::normalizePhpVersion($phpVersion);
-                    info("Found isolated site '{$site}' specifying version: {$phpVersion}");
+            if ($phpVersion = Site::phpRcVersion($site)) {
+                info("Found '{$site}/.valetphprc' specifying version: {$phpVersion}");
+            } else {
+                $domain = $site.'.'.data_get(Configuration::read(), 'tld');
+                if ($phpVersion = PhpFpm::normalizePhpVersion(Site::customPhpVersion($domain))) {
+                    info("Found isolated site '{$domain}' specifying version: {$phpVersion}");
                 }
             }
 
@@ -540,16 +536,13 @@ You might also want to investigate your global Composer configs. Helpful command
      * Allow the user to change the version of PHP Valet uses to serve the current site.
      */
     $app->command('isolate [phpVersion] [--site=]', function ($phpVersion, $site = null) {
-        if (! $phpVersion) {
-            $path = getcwd().'/.valetphprc';
-            if (file_exists($path)) {
-                $phpVersion = trim(file_get_contents($path));
-                info("Found '{$path}' specifying version: {$phpVersion}");
-            }
-        }
-
         if (! $site) {
             $site = basename(getcwd());
+        }
+
+        if (! $phpVersion) {
+            $phpVersion = Site::phpRcVersion($site);
+            info("Found '{$site}/.valetphprc' specifying version: {$phpVersion}");
         }
 
         PhpFpm::isolateDirectory($site, $phpVersion);
@@ -579,6 +572,41 @@ You might also want to investigate your global Composer configs. Helpful command
 
         table(['Path', 'PHP Version'], $sites->all());
     })->descriptions('List all sites using isolated versions of PHP.');
+
+    /**
+     * Get the PHP executable path for a site.
+     */
+    $app->command('which-php [site]', function ($site) {
+        $phpVersion = Site::customPhpVersion(
+            Site::host($site ?: getcwd()).'.'.Configuration::read()['tld']
+        );
+
+        if (! $phpVersion) {
+            $phpVersion = Site::phpRcVersion($site ?: basename(getcwd()));
+        }
+
+        return output(Brew::getPhpExecutablePath($phpVersion));
+    })->descriptions('Get the PHP executable path for a given site', [
+        'site' => 'The site to get the PHP executable path for',
+    ]);
+
+    /**
+     * Proxy commands through to an isolated site's version of PHP.
+     */
+    $app->command('php [command]', function ($command) {
+        warning('It looks like you are running `cli/valet.php` directly; please use the `valet` script in the project root instead.');
+    })->descriptions("Proxy PHP commands with isolated site's PHP executable", [
+        'command' => "Command to run with isolated site's PHP executable",
+    ]);
+
+    /**
+     * Proxy commands through to an isolated site's version of Composer.
+     */
+    $app->command('composer [command]', function ($command) {
+        warning('It looks like you are running `cli/valet.php` directly; please use the `valet` script in the project root instead.');
+    })->descriptions("Proxy Composer commands with isolated site's PHP executable", [
+        'command' => "Composer command to run with isolated site's PHP executable",
+    ]);
 
     /**
      * Tail log file.
