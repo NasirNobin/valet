@@ -61,23 +61,23 @@ then
 
     TLD=$(php "$DIR/cli/valet.php" tld)
 
-	# Decide the correct PORT: uses 60 for secure, else 80
+	# Decide the correct PORT: uses 443 for secure, else 80
 	if grep --quiet --no-messages 443 ~/.config/valet/Nginx/$HOST*
 	then
-		PORT=60
+		PORT=443
 	else
 		PORT=80
 	fi
 
 	# Fetch Ngrok URL In Background...
-	bash "$DIR/cli/scripts/fetch-share-url.sh" "$HOST" &
+	# bash "$DIR/cli/scripts/fetch-share-url.sh" "$HOST" &
 
     ARCH=$(uname -m)
 
     if [[ $ARCH == 'arm64' ]]; then
-        "$DIR/bin/ngrok-arm" http "$HOST.$TLD:$PORT" -host-header=rewrite $PARAMS
+        "$DIR/bin/ngrok-arm" http "127.0.0.1:$PORT" -host-header="$HOST.$TLD" $PARAMS
     else
-        "$DIR/bin/ngrok" http "$HOST.$TLD:$PORT" -host-header=rewrite $PARAMS
+        "$DIR/bin/ngrok" http "127.0.0.1:$PORT" -host-header="$HOST.$TLD" $PARAMS
     fi
 
     exit
